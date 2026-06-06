@@ -1,16 +1,13 @@
 #!/usr/bin/env node
 
 /**
- * Auto-setup Neon Database (ESM version)
- * Usage: node scripts/setup_db.js
+ * Auto-setup Neon Database (ESM compatible)
+ * Usage: npm run db:setup
  */
 
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import pg from 'pg';
-
-const { Pool } = pg;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,6 +20,10 @@ async function setupDatabase() {
 
   try {
     console.log('\n🚀 Auto-Setting up Neon Database...\n');
+
+    // Dynamically import pg (works with ESM)
+    const pg = await import('pg');
+    const { Pool } = pg;
 
     console.log('📡 Connecting to Neon...');
     pool = new Pool({
@@ -41,12 +42,12 @@ async function setupDatabase() {
     const sqlPath = path.join(__dirname, '..', 'database', 'neon_clean_setup.sql');
     const sql = fs.readFileSync(sqlPath, 'utf-8');
 
-    console.log('📄 Executing database schema...');
+    console.log('📄 Executing database schema (this may take a few seconds)...');
 
-    // Execute the entire SQL file (Neon supports multi-statement)
+    // Execute the entire SQL (safe with IF NOT EXISTS)
     await pool.query(sql);
 
-    console.log('✅ Schema executed successfully!\n');
+    console.log('✅ Schema applied successfully!\n');
 
     // Verify tables
     const tablesResult = await pool.query(`
@@ -56,34 +57,38 @@ async function setupDatabase() {
       ORDER BY table_name
     `);
 
-    console.log('📊 Tables in database:');
+    console.log('📊 Tables in your database:');
     tablesResult.rows.forEach(row => {
       console.log(`   ✓ ${row.table_name}`);
     });
 
-    // Count inventory
+    // Count inventory items
     const countResult = await pool.query('SELECT COUNT(*) as count FROM inventory_items');
     console.log(`\n📦 Inventory items loaded: ${countResult.rows[0].count}`);
 
     console.log('\n🎉 Database setup complete!\n');
     console.log('Next steps:');
-    console.log('  1. Start backend:  node server/index.js');
-    console.log('  2. Start frontend: npm run dev');
-    console.log('  3. Open:           http://localhost:5173');
-    console.log('  4. Login:          admin@erp.com / admin123\n');
+    console.log('  1. Start backend:   node server/index.js');
+    console.log('  2. Start frontend:  npm run dev');
+    console.log('  3. Open browser:    http://localhost:5173');
+    console.log('  4. Login with:      admin@erp.com / admin123\n');
 
   } catch (error) {
-    console.error('\n❌ Error during setup:');
-    console.error(error.message);
+    console.error('\n❌ Error:', error.message);
 
-    if (error.message.includes('connect')) {
-      console.error('\n💡 Check your DATABASE_URL in .env or the default connection string.');
+    if (error.message.includes('Cannot find package') || error.message.includes('pg')) {
+      console.error('\n📦 "pg" package is missing.');
+      console.error('Please run this first:');
+      console.error('   npm install\n');
+    } else if (error.message.includes('connect') || error.message.includes('ECONNREFUSED')) {
+      console.error('\n🔌 Could not connect to Neon.');
+      console.error('Check your internet connection or the DATABASE_URL.');
     }
 
-    console.error('\nAlternative (manual):');
+    console.error('\n📌 Alternative (manual, always works):');
     console.error('  1. Go to https://neon.tech');
-    console.error('  2. Open SQL Editor');
-    console.error('  3. Paste content of: database/neon_clean_setup.sql');
+    console.error('  2. Open your project → SQL Editor');
+    console.error('  3. Copy & paste the content of: database/neon_clean_setup.sql');
     console.error('  4. Click Run\n');
 
     process.exit(1);
