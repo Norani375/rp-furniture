@@ -3,6 +3,7 @@ import { Factory, Hammer, PlusCircle } from 'lucide-react';
 import { AFN, dbProduction } from '../db/database';
 import RecordActions from '../components/RecordActions';
 import { printMinimalDocument } from '../utils/printTemplates';
+import { executeProduction } from '../utils/businessLogic';
 
 export default function Manufacturing() {
   const [recipeId, setRecipeId] = useState('BOM-001');
@@ -19,7 +20,8 @@ export default function Manufacturing() {
   const complete = () => {
     const q = Number(quantity);
     if (!selected || q <= 0) return;
-    dbProduction.completeOrder(selected.id, q);
+    // استفاده از Business Logic Layer (دقیق و خودکار)
+    executeProduction(selected.id, q);
     setRefresh((x) => x + 1);
   };
 
