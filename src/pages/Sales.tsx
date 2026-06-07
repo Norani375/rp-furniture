@@ -1,11 +1,21 @@
 import { useState, useMemo } from 'react';
-import { Mail, Phone, FileText, Search } from 'lucide-react';
+import { Mail, Phone, FileText, Search, Printer } from 'lucide-react';
 import { customers, invoices } from '../data/mockData';
 import { dbLedger, AFN, persianDate } from '../db/database';
+import InvoicePrint from '../components/InvoicePrint';
+import { Invoice } from '../types';
 
 export default function Sales() {
   const [tab, setTab] = useState<'customers' | 'invoices' | 'history'>('customers');
   const [search, setSearch] = useState('');
+  const [printInvoice, setPrintInvoice] = useState<Invoice | null>(null);
+
+  const handlePrint = (inv: Invoice) => {
+    setPrintInvoice(inv);
+    setTimeout(() => {
+      window.print();
+    }, 100);
+  };
 
   const txHistory = useMemo(() => dbLedger.getAll().filter((t) => t.type === 'sale'), []);
 
@@ -16,7 +26,8 @@ export default function Sales() {
   const c = customers.length; const invF = invoices.filter((i) => search ? i.customerName.includes(search) || i.id.includes(search) : true);
 
   return (
-    <div className="space-y-6">
+    <>
+    <div className="space-y-6 print:hidden">
       <div><h2 className="text-xl font-bold text-slate-900">مدیریت فروش</h2><p className="text-sm text-slate-500">{txHistory.length} تراکنش فروش ثبت شده</p></div>
 
       <div className="flex gap-2 border-b border-slate-200">
@@ -47,7 +58,7 @@ export default function Sales() {
       )}
 
       {tab === 'invoices' && (
-        <div className="space-y-3">
+        <div className="space-y-3 print:hidden">
           <div className="relative w-64"><Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="جستجوی فاکتور..." className="w-full rounded-xl border border-slate-300 py-2 pr-9 pl-3 text-sm focus:border-indigo-500 focus:outline-none" /></div>
           {invF.map((inv) => (
             <div key={inv.id} className="flex items-center justify-between rounded-xl border border-slate-100 bg-white p-4">
@@ -55,7 +66,10 @@ export default function Sales() {
                 <div><p className="font-medium text-slate-900">{inv.id}</p><p className="text-xs text-slate-500">{inv.customerName}</p></div>
               </div>
               <div className="text-center"><p className="font-bold text-slate-900">{AFN(inv.amount)}</p><p className="text-xs text-slate-500">{inv.date}</p></div>
-              <span className={`rounded-full px-3 py-1 text-xs font-medium ${inv.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : inv.status === 'overdue' ? 'bg-red-100 text-red-700' : inv.status === 'sent' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'}`}>{inv.status === 'paid' ? 'پرداخت شده' : inv.status === 'overdue' ? 'معوق' : inv.status === 'sent' ? 'ارسال شده' : 'پیش‌نویس'}</span>
+              <div className="flex items-center gap-3">
+                <span className={`rounded-full px-3 py-1 text-xs font-medium ${inv.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : inv.status === 'overdue' ? 'bg-red-100 text-red-700' : inv.status === 'sent' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'}`}>{inv.status === 'paid' ? 'پرداخت شده' : inv.status === 'overdue' ? 'معوق' : inv.status === 'sent' ? 'ارسال شده' : 'پیش‌نویس'}</span>
+                <button onClick={() => handlePrint(inv)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100" title="چاپ فاکتور"><Printer size={18} /></button>
+              </div>
             </div>
           ))}
         </div>
@@ -82,5 +96,7 @@ export default function Sales() {
         </div>
       )}
     </div>
+    <InvoicePrint invoice={printInvoice} />
+    </>
   );
 }

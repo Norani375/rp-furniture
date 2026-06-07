@@ -116,8 +116,14 @@ export default function Sidebar({ active, onNavigate, collapsed, onToggle }: Pro
       <div className="border-t border-slate-100 p-3">
         <button
           onClick={() => {
-            localStorage.clear();
-            window.location.reload();
+            if (confirm('آیا از ریست دیتابیس محلی مطمئن هستید؟')) {
+              // فقط دیتای محلی مربوط به erp پاک می‌شود
+              for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && k.startsWith('erp_') && k !== 'erp_auth_token') localStorage.removeItem(k);
+              }
+              window.location.reload();
+            }
           }}
           className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors ${collapsed ? 'justify-center' : ''}`}
           title={collapsed ? 'ریست دیتابیس' : undefined}
@@ -126,6 +132,10 @@ export default function Sidebar({ active, onNavigate, collapsed, onToggle }: Pro
           {!collapsed && <span>ریست دیتابیس</span>}
         </button>
         <button
+          onClick={() => {
+            localStorage.removeItem('erp_auth_token');
+            window.location.reload();
+          }}
           className={`mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-500 hover:bg-slate-50 transition-colors ${collapsed ? 'justify-center' : ''}`}
           title={collapsed ? 'خروج' : undefined}
         >

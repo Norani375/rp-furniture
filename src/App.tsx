@@ -13,6 +13,7 @@ import Payroll from './pages/Payroll';
 import Tax from './pages/Tax';
 import Reports from './pages/Reports';
 import SettingsPage from './pages/SettingsPage';
+import Login from './pages/Login';
 import { testConnection } from './db/neon';
 import { Database } from 'lucide-react';
 
@@ -42,19 +43,29 @@ export default function App() {
   const [page, setPage] = useState('dashboard');
   const [collapsed, setCollapsed] = useState(false);
   const [dbStatus, setDbStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     testConnection().then((r) => setDbStatus(r.ok ? 'online' : 'offline'));
+    if (localStorage.getItem('erp_auth_token') === 'logged_in') {
+      setIsAuthenticated(true);
+    }
   }, []);
+
+  if (!isAuthenticated) {
+    return <Login onSuccess={() => setIsAuthenticated(true)} />;
+  }
 
   const PageComponent = pages[page] || Dashboard;
 
   return (
-    <div className="flex h-screen bg-slate-50 text-slate-900" dir="rtl">
-      <Sidebar active={page} onNavigate={setPage} collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
+    <div className="flex h-screen bg-slate-50 text-slate-900 print:bg-white" dir="rtl">
+      <div className="print:hidden">
+        <Sidebar active={page} onNavigate={setPage} collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
+      </div>
       <main className="flex-1 overflow-y-auto">
         {/* Top bar */}
-        <div className="sticky top-0 z-40 flex items-center justify-between border-b border-slate-200 bg-white/90 px-6 py-3 backdrop-blur">
+        <div className="sticky top-0 z-40 flex items-center justify-between border-b border-slate-200 bg-white/90 px-6 py-3 backdrop-blur print:hidden">
           <h1 className="text-base font-bold text-slate-900">{pageTitles[page]}</h1>
           <button
             onClick={() => setPage('settings')}
@@ -72,10 +83,10 @@ export default function App() {
           </button>
         </div>
 
-        <div className="mx-auto max-w-7xl px-4 py-6">
+        <div className="mx-auto max-w-7xl px-4 py-6 print:p-0 print:max-w-none">
           <PageComponent />
         </div>
-        <footer className="mt-10 border-t border-slate-200 bg-white py-4">
+        <footer className="mt-10 border-t border-slate-200 bg-white py-4 print:hidden">
           <div className="mx-auto max-w-7xl px-4 text-center text-xs text-slate-500">
             سیستم مدیریت کسب‌وکار — نسخه ۱.۰ | دیتابیس: Neon PostgreSQL (Serverless)
           </div>
