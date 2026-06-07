@@ -181,3 +181,72 @@ export interface Product {
   cost: number;
   status: 'in_stock' | 'low_stock' | 'out_of_stock';
 }
+
+/* ─── Production / Banking / Security ─── */
+
+export type UserRole = 'admin' | 'accountant' | 'inventory' | 'sales';
+
+export interface AppUser {
+  username: string;
+  password: string;
+  name: string;
+  role: UserRole;
+}
+
+export interface BOMItem {
+  itemId: number;
+  name: string;
+  quantity: number;
+  unit: ItemUnit;
+  unitCost: number;
+}
+
+export interface ProductionRecipe {
+  id: string;
+  productName: string;
+  outputUnit: ItemUnit;
+  outputQuantity: number;
+  laborCost: number;
+  overheadCost: number;
+  materials: BOMItem[];
+  createdAt: string;
+}
+
+export interface ProductionOrder {
+  id: string;
+  recipeId: string;
+  productName: string;
+  quantity: number;
+  totalCost: number;
+  status: 'draft' | 'completed' | 'cancelled';
+  date: string;
+}
+
+export interface BankAccount {
+  id: string;
+  name: string;
+  bankName: string;
+  accountNo: string;
+  balance: number;
+  currency: string;
+}
+
+export interface ChequeRecord {
+  id: string;
+  chequeNo: string;
+  partyName: string;
+  amount: number;
+  dueDate: string;
+  type: 'received' | 'issued';
+  status: 'pending' | 'cleared' | 'returned';
+}
+
+export interface SystemNotification {
+  id: string;
+  title: string;
+  message: string;
+  severity: 'info' | 'warning' | 'danger';
+  module: string;
+  createdAt: string;
+  read: boolean;
+}

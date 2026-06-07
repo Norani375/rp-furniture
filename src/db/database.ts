@@ -6,6 +6,7 @@ import {
   InventoryItem, InstallmentPlan, CurrencySettings,
   Transaction, TransactionType,
   ReportFilter, ReportSummary,
+  ProductionRecipe, ProductionOrder, BankAccount, ChequeRecord, SystemNotification,
 } from '../types';
 
 // Re-export for API layer
@@ -19,6 +20,10 @@ const DB = {
   currencies: 'erp_currencies',
   transactions: 'erp_ledger',        // unified transaction log
   invoiceSeq: 'erp_invoice_seq',
+  recipes: 'erp_recipes',
+  productionOrders: 'erp_production_orders',
+  bankAccounts: 'erp_bank_accounts',
+  cheques: 'erp_cheques',
 } as const;
 
 const AFN = (v: number) => new Intl.NumberFormat('fa-AF').format(Math.round(v)) + ' ؋';
@@ -183,6 +188,124 @@ export const dbInstallments = {
 /* ─── Currencies ─── */
 const seedCurrencySettings: CurrencySettings = { baseCurrency: 'AFN', secondaryCurrencies: ['USD','EUR','PKR','IRR','CNY'], rates: { ...exchangeRates }, activeCurrencies: ['USD','EUR','PKR','IRR','CNY'] };
 export const dbCurrencies = { getSettings: (): CurrencySettings => load(DB.currencies, seedCurrencySettings), saveSettings: (s: CurrencySettings) => save(DB.currencies, s) };
+
+/* ─── Production / BOM ─── */
+const seedRecipes: ProductionRecipe[] = [
+  {
+    id: 'BOM-001',
+    productName: 'الماری دومتره',
+    outputUnit: 'دانه',
+    outputQuantity: 1,
+    laborCost: 1200,
+    overheadCost: 600,
+    createdAt: persianDate(),
+    materials: [
+      { itemId: 1, name: 'تخته لمونشین ۱.۸۳/۲.۴۴cm', quantity: 2, unit: 'دانه', unitCost: 2200 },
+      { itemId: 45, name: 'خرپیچ 50', quantity: 0.1, unit: 'کارتن', unitCost: 2200 },
+      { itemId: 58, name: 'شیرش دلتا آهن', quantity: 0.1, unit: 'کارتن', unitCost: 3500 },
+    ],
+  },
+  {
+    id: 'BOM-002',
+    productName: 'تخت خواب 1/50cm',
+    outputUnit: 'دانه',
+    outputQuantity: 1,
+    laborCost: 900,
+    overheadCost: 400,
+    createdAt: persianDate(),
+    materials: [
+      { itemId: 2, name: 'تخته لمونشین 1.83/3.66', quantity: 1, unit: 'دانه', unitCost: 3200 },
+      { itemId: 46, name: 'خرپیچ 32', quantity: 1, unit: 'قوطی', unitCost: 110 },
+    ],
+  },
+];
+
+export const dbProduction = {
+  getRecipes: (): ProductionRecipe[] => load(DB.recipes, seedRecipes),
+  saveRecipes: (recipes: ProductionRecipe[]) => save(DB.recipes, recipes),
+  getOrders: (): ProductionOrder[] => load(DB.productionOrders, []),
+  saveOrders: (orders: ProductionOrder[]) => save(DB.productionOrders, orders),
+  completeOrder(recipeId: string, quantity: number) {
+    const recipe = dbProduction.getRecipes().find((r) => r.id === recipeId);
+    if (!recipe) return null;
+    const materialCost = recipe.materials.reduce((s, m) => s + m.quantity * m.unitCost, 0) * quantity;
+    const totalCost = materialCost + (recipe.laborCost + recipe.overheadCost) * quantity;
+    const order: ProductionOrder = {
+      id: `PROD-${Date.now().toString().slice(-6)}`,
+      recipeId,
+      productName: recipe.productName,
+      quantity,
+      totalCost,
+      status: 'completed',
+      date: persianDate(),
+    };
+    const orders = [...dbProduction.getOrders(), order];
+    dbProduction.saveOrders(orders);
+    dbLedger.add({ date: order.date, type: 'inventory_in', status: 'confirmed', title: `تولید ${recipe.productName}`, description: `${quantity} ${recipe.outputUnit}`, debit: totalCost, credit: 0, refType: 'production', refId: order.id, createdBy: 'کاربر' });
+    return order;
+  },
+};
+
+/* ─── Banking / Cheques ─── */
+const seedAccounts: BankAccount[] = [
+  { id: 'BA-001', name: 'صندوق فروشگاه', bankName: 'نقد', accountNo: 'CASH', balance: 599500, currency: 'AFN' },
+  { id: 'BA-002', name: 'حساب بانکی اصلی', bankName: 'Azizi Bank', accountNo: '100-ERP-001', balance: 1850000, currency: 'AFN' },
+];
+
+const seedCheques: ChequeRecord[] = [
+  { id: 'CHQ-001', chequeNo: '905521', partyName: 'احمد درافشان', amount: 650000, dueDate: '2025-03-30', type: 'received', status: 'pending' },
+  { id: 'CHQ-002', chequeNo: '110245', partyName: 'تامین کننده الف', amount: 245000, dueDate: '2025-03-25', type: 'issued', status: 'pending' },
+];
+
+export const dbBanking = {
+  getAccounts: (): BankAccount[] => load(DB.bankAccounts, seedAccounts),
+  saveAccounts: (accounts: BankAccount[]) => save(DB.bankAccounts, accounts),
+  getCheques: (): ChequeRecord[] => load(DB.cheques, seedCheques),
+  saveCheques: (cheques: ChequeRecord[]) => save(DB.cheques, cheques),
+  addCheque(cheque: ChequeRecord) {
+    const all = [...dbBanking.getCheques(), cheque];
+    dbBanking.saveCheques(all);
+    dbLedger.add({ date: persianDate(), type: cheque.type === 'received' ? 'payment_in' : 'payment_out', status: 'pending', title: `${cheque.type === 'received' ? 'چک دریافتی' : 'چک پرداختی'} ${cheque.chequeNo}`, description: cheque.partyName, debit: cheque.type === 'received' ? cheque.amount : 0, credit: cheque.type === 'issued' ? cheque.amount : 0, refType: 'cheque', refId: cheque.id, createdBy: 'کاربر' });
+    return all;
+  },
+};
+
+/* ─── Notifications ─── */
+export const dbNotifications = {
+  getAll(): SystemNotification[] {
+    const items = dbInventory.getAll();
+    const cheques = dbBanking.getCheques();
+    const plans = dbInstallments.getAll();
+    const lowStock = items.filter((i) => i.quantity <= 2).slice(0, 8).map((i, idx) => ({
+      id: `LOW-${idx}-${i.id}`,
+      title: 'کمبود موجودی',
+      message: `${i.name} فقط ${i.quantity} ${i.unit} باقی مانده است`,
+      severity: 'warning' as const,
+      module: 'انبار',
+      createdAt: persianDate(),
+      read: false,
+    }));
+    const pendingCheques = cheques.filter((c) => c.status === 'pending').map((c) => ({
+      id: `CHQ-${c.id}`,
+      title: 'چک در انتظار',
+      message: `${c.chequeNo} - ${c.partyName} - ${AFN(c.amount)}`,
+      severity: c.type === 'issued' ? 'danger' as const : 'info' as const,
+      module: 'چک و بانک',
+      createdAt: c.dueDate,
+      read: false,
+    }));
+    const overduePlans = plans.filter((p) => p.status === 'overdue').map((p) => ({
+      id: `INS-${p.id}`,
+      title: 'قسط معوق',
+      message: `${p.customerName} - باقیمانده ${AFN(p.remainingAmount)}`,
+      severity: 'danger' as const,
+      module: 'اقساط',
+      createdAt: p.dueDate,
+      read: false,
+    }));
+    return [...overduePlans, ...pendingCheques, ...lowStock];
+  },
+};
 
 /* ─── Reset ─── */
 export const dbReset = () => { Object.values(DB).forEach((k) => localStorage.removeItem(k)); window.location.reload(); };

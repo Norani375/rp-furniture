@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Receipt, ShoppingCart, Truck, Package,
   Users, Users2, Wallet, FileText, Settings, ChevronRight,
-  Database, LogOut, ChevronLeft,
+  Database, LogOut, ChevronLeft, Factory, Banknote, Bell, Shield, Store,
 } from 'lucide-react';
 
 interface Props {
@@ -22,15 +22,18 @@ const menuGroups = [
     label: 'کسب‌وکار',
     items: [
       { id: 'catalog', label: 'کاتالوگ اجناس', icon: Package },
+      { id: 'pos', label: 'فروش سریع POS', icon: Store },
       { id: 'sales', label: 'فروش', icon: ShoppingCart },
       { id: 'purchases', label: 'خرید', icon: Truck },
       { id: 'inventory', label: 'انبارداری', icon: Package },
+      { id: 'manufacturing', label: 'تولید و مونتاژ', icon: Factory },
     ],
   },
   {
     label: 'مالی',
     items: [
       { id: 'accounting', label: 'حسابداری', icon: Receipt },
+      { id: 'banking', label: 'چک و بانک', icon: Banknote },
       { id: 'currencies', label: 'ارزها', icon: Wallet },
       { id: 'installments', label: 'اقساط', icon: FileText },
       { id: 'tax', label: 'مالیات', icon: Receipt },
@@ -47,6 +50,8 @@ const menuGroups = [
     label: 'گزارشات',
     items: [
       { id: 'reports', label: 'گزارش‌گیری', icon: FileText },
+      { id: 'notifications', label: 'هشدارها', icon: Bell },
+      { id: 'access', label: 'سطوح دسترسی', icon: Shield },
       { id: 'settings', label: 'تنظیمات', icon: Settings },
     ],
   },

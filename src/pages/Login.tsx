@@ -12,10 +12,17 @@ export default function Login({ onSuccess }: LoginProps) {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // برای سادگی در این دمو از یوزر و پسورد ثابت استفاده می‌کنیم
-    // نام کاربری: admin | رمز عبور: 123456
-    if (username === 'admin' && password === '123456') {
+    const users = [
+      { username: 'admin', password: '123456', role: 'admin', name: 'مدیر سیستم' },
+      { username: 'accountant', password: '123456', role: 'accountant', name: 'حسابدار' },
+      { username: 'sales', password: '123456', role: 'sales', name: 'فروشنده' },
+      { username: 'inventory', password: '123456', role: 'inventory', name: 'انباردار' },
+    ];
+    const user = users.find((u) => u.username === username && u.password === password);
+    if (user) {
       localStorage.setItem('erp_auth_token', 'logged_in');
+      localStorage.setItem('erp_user_role', user.role);
+      localStorage.setItem('erp_user_name', user.name);
       onSuccess();
     } else {
       setError('نام کاربری یا رمز عبور اشتباه است.');
@@ -79,7 +86,7 @@ export default function Login({ onSuccess }: LoginProps) {
         </form>
 
         <div className="mt-6 text-center text-xs text-slate-500">
-          اطلاعات دمو: <br/> نام کاربری: <b>admin</b> | رمز عبور: <b>123456</b>
+          کاربران دمو: <br/> <b>admin</b> / <b>accountant</b> / <b>sales</b> / <b>inventory</b><br/> رمز همه: <b>123456</b>
         </div>
       </div>
     </div>
