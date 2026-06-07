@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Download, Filter, Calendar, PieChart as PieIcon, BarChart3 } from 'lucide-react';
 import { dbLedger, AFN, dbReports } from '../db/database';
+import { printMinimalDocument } from '../utils/printTemplates';
 import { TransactionType, ReportFilter } from '../types';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
@@ -66,7 +67,25 @@ export default function Reports() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div><h2 className="text-xl font-bold text-slate-900">گزارش‌گیری دقیق</h2><p className="text-sm text-slate-500">{ledger.length} تراکنش در سیستم</p></div>
-        <div className="flex gap-2"><button onClick={() => window.print()} className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">پرینت</button><button onClick={downloadCSV} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"><Download size={16} /> خروجی CSV</button></div>
+        <div className="flex gap-2"><button onClick={() => printMinimalDocument({
+          title: 'گزارش جامع مالی',
+          subtitle: `${summary.totalTransactions} تراکنش`,
+          party: 'حسابداری',
+          headers: ['شاخص', 'مقدار'],
+          rows: [
+            ['تعداد تراکنش‌ها', String(summary.totalTransactions)],
+            ['مجموع واریزی', AFN(summary.totalDebit)],
+            ['مجموع برداشت', AFN(summary.totalCredit)],
+            ['مانده خالص', AFN(summary.netBalance)],
+            ['فروش کل', AFN(profitLoss.sales)],
+            ['COGS', AFN(profitLoss.cogs)],
+            ['هزینه‌ها', AFN(profitLoss.expenses)],
+            ['سود خالص', AFN(profitLoss.netProfit)],
+            ['مارجین سود', `${profitLoss.margin.toFixed(1)}٪`],
+          ],
+          totals: [{ label: 'سود خالص', value: AFN(profitLoss.netProfit) }],
+          note: 'این گزارش بر اساس تمام تراکنش‌های ثبت‌شده در سیستم محاسبه شده است.',
+        })} className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">پرینت</button><button onClick={downloadCSV} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"><Download size={16} /> خروجی CSV</button></div>
       </div>
 
       {/* Filters */}

@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { Package, Wallet, AlertTriangle, RefreshCw, Loader2 } from 'lucide-react';
 import { neonLedger, neonStats, testConnection } from '../db/neon';
 import { inventoryItems } from '../data/mockData';
-import { AFN } from '../db/database';
+import { AFN, dbLedger, dbInstallments } from '../db/database';
+import { getPreciseReport } from '../utils/businessLogic';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({ 
@@ -34,15 +35,17 @@ export default function Dashboard() {
         setRecentTx(txs.slice(0, 8));
       } else {
         setConnected(false);
+        const report = getPreciseReport();
+        const localTx = dbLedger.getAll();
+        const localPlans = dbInstallments.getAll();
         setStats({
           inventoryCount: inventoryItems.length,
-          inventoryValue: inventoryItems.reduce((s, i) => s + i.quantity * i.unitPriceAFN, 0),
-          realInventoryValue: 0,
-          cogs: 0,
-          transactionCount: 0,
-          planCount: 2,
-          receivable: 2000000,
+          inventoryValue: report.inventoryValue,
+          transactionCount: localTx.length,
+          planCount: localPlans.length,
+          receivable: localPlans.reduce((s: number, p: any) => s + p.remainingAmount, 0),
         });
+        setRecentTx(localTx.slice(-8).reverse());
       }
     } catch {
       setConnected(false);

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { supportedCurrencies, exchangeRates } from '../data/mockData';
 import { dbCurrencies } from '../db/database';
 import { CurrencySettings } from '../types';
+import { printMinimalDocument } from '../utils/printTemplates';
 
 const convertFromAFN = (amountAFN: number, toCode: string) => {
   const rate = exchangeRates[toCode as keyof typeof exchangeRates];
@@ -20,7 +21,17 @@ export default function Currencies() {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between">
       <h2 className="text-xl font-bold text-slate-900">مدیریت ارزها</h2>
+      <button onClick={() => printMinimalDocument({
+        title: 'گزارش نرخ ارزها',
+        subtitle: `ارز پایه: ${settings.baseCurrency}`,
+        party: 'حسابداری',
+        headers: ['کد', 'نام', 'نماد', 'نرخ (معادل ۱ واحد به AFN)'],
+        rows: Object.entries(settings.rates).map(([code, rate]) => [code, supportedCurrencies.find(c => c.code === code)?.label || code, supportedCurrencies.find(c => c.code === code)?.symbol || '', rate.toFixed(2)]),
+        totals: [{ label: 'ارز پایه', value: settings.baseCurrency }],
+      })} className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">پرینت</button>
+      </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h3 className="text-base font-bold text-slate-900">تنظیمات ارز پایه</h3>

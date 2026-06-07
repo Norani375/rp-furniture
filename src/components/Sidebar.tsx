@@ -117,8 +117,19 @@ export default function Sidebar({ active, onNavigate, collapsed, onToggle }: Pro
         ))}
       </nav>
 
-      {/* Footer */}
+      {/* User + Footer */}
       <div className="border-t border-slate-100 p-3">
+        {!collapsed && (
+          <div className="mb-2 flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">
+              {(localStorage.getItem('erp_user_name') || 'م').charAt(0)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="truncate text-sm font-medium text-slate-900">{localStorage.getItem('erp_user_name') || 'مدیر'}</p>
+              <p className="truncate text-[10px] text-slate-500">{localStorage.getItem('erp_user_role') || 'admin'}</p>
+            </div>
+          </div>
+        )}
         <button
           onClick={() => {
             if (confirm('آیا از ریست دیتابیس محلی مطمئن هستید؟')) {
