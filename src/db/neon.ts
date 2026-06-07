@@ -11,6 +11,10 @@ const NEON_URL = import.meta.env.VITE_DATABASE_URL || '';
 
 let _sql: ReturnType<typeof neon> | null = null;
 function sql() {
+  if (!_sql) {
+    if (!NEON_URL) throw new Error('Database URL not configured');
+    _sql = neon(NEON_URL);
+  }
   return _sql;
 }
 
