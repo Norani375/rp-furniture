@@ -65,6 +65,18 @@ export const dbLedger = {
     return record;
   },
 
+  update(id: string, patch: Partial<Transaction>): Transaction[] {
+    const all = dbLedger.getAll().map((tx) => (tx.id === id ? { ...tx, ...patch, updatedAt: persianDate() } : tx));
+    save(DB.transactions, all);
+    return all;
+  },
+
+  remove(id: string): Transaction[] {
+    const all = dbLedger.getAll().filter((tx) => tx.id !== id);
+    save(DB.transactions, all);
+    return all;
+  },
+
   addMany(rows: Omit<Transaction, 'id' | 'balance' | 'createdAt' | 'updatedAt'>[]): Transaction[] {
     const records: Transaction[] = [];
     for (const row of rows) records.push(dbLedger.add(row));
@@ -182,6 +194,16 @@ export const dbInstallments = {
       return { ...plan, installments: updated, paidAmount, remainingAmount: plan.totalAmount - paidAmount, status: allPaid ? 'completed' : plan.status } as InstallmentPlan;
     });
     dbInstallments.saveAll(all); return all;
+  },
+  update: (planId: string, patch: Partial<InstallmentPlan>) => {
+    const all = dbInstallments.getAll().map((p) => (p.id === planId ? { ...p, ...patch } : p));
+    dbInstallments.saveAll(all);
+    return all;
+  },
+  remove: (planId: string) => {
+    const all = dbInstallments.getAll().filter((p) => p.id !== planId);
+    dbInstallments.saveAll(all);
+    return all;
   },
 };
 

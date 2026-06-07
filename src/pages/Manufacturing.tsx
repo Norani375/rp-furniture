@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Factory, Hammer, PlusCircle } from 'lucide-react';
 import { AFN, dbProduction } from '../db/database';
+import RecordActions from '../components/RecordActions';
 
 export default function Manufacturing() {
   const [recipeId, setRecipeId] = useState('BOM-001');
@@ -21,6 +22,12 @@ export default function Manufacturing() {
     setRefresh((x) => x + 1);
   };
 
+  const deleteOrder = (id: string) => {
+    if (!confirm('آیا از حذف این ثبت تولید مطمئن هستید؟')) return;
+    dbProduction.saveOrders(dbProduction.getOrders().filter((o) => o.id !== id));
+    setRefresh((x) => x + 1);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -28,7 +35,7 @@ export default function Manufacturing() {
           <h2 className="text-xl font-bold text-slate-900">تولید و مونتاژ</h2>
           <p className="text-sm text-slate-500">فرمول ساخت، مصرف مواد اولیه و ثبت تولید</p>
         </div>
-        <div className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">BOM فعال: {recipes.length}</div>
+        <div className="flex items-center gap-2"><button onClick={() => window.print()} className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">پرینت</button><div className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">BOM فعال: {recipes.length}</div></div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -71,7 +78,7 @@ export default function Manufacturing() {
           {orders.slice().reverse().map((o) => (
             <div key={o.id} className="flex items-center justify-between rounded-xl border border-slate-100 px-4 py-3">
               <div><p className="text-sm font-medium text-slate-900">{o.productName}</p><p className="text-xs text-slate-500">{o.id} · {o.date}</p></div>
-              <div className="text-left"><p className="text-sm font-bold text-slate-900">{AFN(o.totalCost)}</p><p className="text-xs text-emerald-600">{o.quantity} دانه تکمیل شد</p></div>
+              <div className="flex items-center gap-3"><div className="text-left"><p className="text-sm font-bold text-slate-900">{AFN(o.totalCost)}</p><p className="text-xs text-emerald-600">{o.quantity} دانه تکمیل شد</p></div><RecordActions compact onDelete={() => deleteOrder(o.id)} onPrint={() => window.print()} /></div>
             </div>
           ))}
         </div>

@@ -65,7 +65,7 @@ export default function Reports() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div><h2 className="text-xl font-bold text-slate-900">گزارش‌گیری دقیق</h2><p className="text-sm text-slate-500">{ledger.length} تراکنش در سیستم</p></div>
-        <button onClick={downloadCSV} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"><Download size={16} /> خروجی CSV</button>
+        <div className="flex gap-2"><button onClick={() => window.print()} className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">پرینت</button><button onClick={downloadCSV} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"><Download size={16} /> خروجی CSV</button></div>
       </div>
 
       {/* Filters */}

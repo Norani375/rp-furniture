@@ -1,14 +1,16 @@
 import { useState, useMemo } from 'react';
-import { Mail, Phone, FileText, Search, Printer } from 'lucide-react';
+import { Mail, Phone, FileText, Search } from 'lucide-react';
 import { customers, invoices } from '../data/mockData';
 import { dbLedger, AFN, persianDate } from '../db/database';
 import InvoicePrint from '../components/InvoicePrint';
 import { Invoice } from '../types';
+import RecordActions from '../components/RecordActions';
 
 export default function Sales() {
   const [tab, setTab] = useState<'customers' | 'invoices' | 'history'>('customers');
   const [search, setSearch] = useState('');
   const [printInvoice, setPrintInvoice] = useState<Invoice | null>(null);
+  const [invoiceList, setInvoiceList] = useState(invoices);
 
   const handlePrint = (inv: Invoice) => {
     setPrintInvoice(inv);
@@ -23,7 +25,18 @@ export default function Sales() {
     dbLedger.add({ date: persianDate(), type: 'sale', status: 'confirmed', title: `فروش به ${customerName}`, description: `مبلغ ${AFN(amount)}`, debit: amount, credit: 0, refType: 'customer', refId: customerName, createdBy: 'کاربر' });
   };
 
-  const c = customers.length; const invF = invoices.filter((i) => search ? i.customerName.includes(search) || i.id.includes(search) : true);
+  const c = customers.length; const invF = invoiceList.filter((i) => search ? i.customerName.includes(search) || i.id.includes(search) : true);
+
+  const editInvoice = (inv: Invoice) => {
+    const next = prompt('مبلغ فاکتور را ویرایش کنید:', String(inv.amount));
+    if (next === null) return;
+    setInvoiceList((list) => list.map((i) => i.id === inv.id ? { ...i, amount: Number(next) } : i));
+  };
+
+  const deleteInvoice = (id: string) => {
+    if (!confirm('آیا از حذف فاکتور مطمئن هستید؟')) return;
+    setInvoiceList((list) => list.filter((i) => i.id !== id));
+  };
 
   return (
     <>
@@ -32,7 +45,7 @@ export default function Sales() {
 
       <div className="flex gap-2 border-b border-slate-200">
         <button onClick={() => setTab('customers')} className={`px-4 py-2 text-sm font-medium border-b-2 ${tab === 'customers' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-500'}`}>مشتریان ({c})</button>
-        <button onClick={() => setTab('invoices')} className={`px-4 py-2 text-sm font-medium border-b-2 ${tab === 'invoices' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-500'}`}>فاکتورها ({invoices.length})</button>
+        <button onClick={() => setTab('invoices')} className={`px-4 py-2 text-sm font-medium border-b-2 ${tab === 'invoices' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-500'}`}>فاکتورها ({invoiceList.length})</button>
         <button onClick={() => setTab('history')} className={`px-4 py-2 text-sm font-medium border-b-2 ${tab === 'history' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-500'}`}>تاریخچه فروش ({txHistory.length})</button>
       </div>
 
@@ -68,7 +81,7 @@ export default function Sales() {
               <div className="text-center"><p className="font-bold text-slate-900">{AFN(inv.amount)}</p><p className="text-xs text-slate-500">{inv.date}</p></div>
               <div className="flex items-center gap-3">
                 <span className={`rounded-full px-3 py-1 text-xs font-medium ${inv.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : inv.status === 'overdue' ? 'bg-red-100 text-red-700' : inv.status === 'sent' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'}`}>{inv.status === 'paid' ? 'پرداخت شده' : inv.status === 'overdue' ? 'معوق' : inv.status === 'sent' ? 'ارسال شده' : 'پیش‌نویس'}</span>
-                <button onClick={() => handlePrint(inv)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100" title="چاپ فاکتور"><Printer size={18} /></button>
+                <RecordActions compact onEdit={() => editInvoice(inv)} onDelete={() => deleteInvoice(inv.id)} onPrint={() => handlePrint(inv)} />
               </div>
             </div>
           ))}

@@ -2,11 +2,13 @@ import { useState, useMemo } from 'react';
 import { CheckCircle, Plus } from 'lucide-react';
 import { suppliers } from '../data/mockData';
 import { dbLedger, AFN, persianDate } from '../db/database';
+import RecordActions from '../components/RecordActions';
 
 export default function Purchases() {
   const [tab, setTab] = useState<'suppliers' | 'history'>('suppliers');
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState(''); const [amount, setAmount] = useState('');
+  const [supplierList, setSupplierList] = useState(suppliers);
 
   const txHistory = useMemo(() => dbLedger.getAll().filter((t) => t.type === 'purchase'), []);
 
@@ -17,11 +19,24 @@ export default function Purchases() {
     setShowForm(false); setName(''); setAmount('');
   };
 
+  const editSupplier = (id: string) => {
+    const current = supplierList.find((s) => s.id === id);
+    if (!current) return;
+    const next = prompt('نام تامین‌کننده را ویرایش کنید:', current.name);
+    if (!next) return;
+    setSupplierList((list) => list.map((s) => s.id === id ? { ...s, name: next } : s));
+  };
+
+  const deleteSupplier = (id: string) => {
+    if (!confirm('آیا از حذف تامین‌کننده مطمئن هستید؟')) return;
+    setSupplierList((list) => list.filter((s) => s.id !== id));
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div><h2 className="text-xl font-bold text-slate-900">مدیریت خرید</h2><p className="text-sm text-slate-500">{txHistory.length} خرید ثبت شده</p></div>
-        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"><Plus size={16} /> خرید جدید</button>
+        <div className="flex gap-2"><button onClick={() => window.print()} className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">پرینت</button><button onClick={() => setShowForm(true)} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"><Plus size={16} /> خرید جدید</button></div>
       </div>
 
       {showForm && (
@@ -36,7 +51,7 @@ export default function Purchases() {
       )}
 
       <div className="flex gap-2 border-b border-slate-200">
-        <button onClick={() => setTab('suppliers')} className={`px-4 py-2 text-sm font-medium border-b-2 ${tab === 'suppliers' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-500'}`}>تامین‌کنندگان ({suppliers.length})</button>
+        <button onClick={() => setTab('suppliers')} className={`px-4 py-2 text-sm font-medium border-b-2 ${tab === 'suppliers' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-500'}`}>تامین‌کنندگان ({supplierList.length})</button>
         <button onClick={() => setTab('history')} className={`px-4 py-2 text-sm font-medium border-b-2 ${tab === 'history' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-slate-500'}`}>تاریخچه خرید ({txHistory.length})</button>
       </div>
 
@@ -44,15 +59,16 @@ export default function Purchases() {
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-right text-sm">
-              <thead><tr className="border-b border-slate-200 bg-slate-50 text-xs text-slate-500"><th className="px-4 py-3 font-semibold">تامین‌کننده</th><th className="px-4 py-3 font-semibold">دسته</th><th className="px-4 py-3 font-semibold">امتیاز</th><th className="px-4 py-3 font-semibold">سفارشات</th><th className="px-4 py-3 font-semibold">وضعیت</th></tr></thead>
+              <thead><tr className="border-b border-slate-200 bg-slate-50 text-xs text-slate-500"><th className="px-4 py-3 font-semibold">تامین‌کننده</th><th className="px-4 py-3 font-semibold">دسته</th><th className="px-4 py-3 font-semibold">امتیاز</th><th className="px-4 py-3 font-semibold">سفارشات</th><th className="px-4 py-3 font-semibold">وضعیت</th><th className="px-4 py-3 font-semibold print:hidden">عملیات</th></tr></thead>
               <tbody className="divide-y divide-slate-100">
-                {suppliers.map((s) => (
+                {supplierList.map((s) => (
                   <tr key={s.id} className="hover:bg-slate-50/60">
                     <td className="px-4 py-3"><p className="font-medium text-slate-900">{s.name}</p><p className="text-xs text-slate-500">{s.email}</p></td>
                     <td className="px-4 py-3"><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs">{s.category}</span></td>
                     <td className="px-4 py-3"><div className="flex text-yellow-400">{Array.from({ length: 5 }).map((_, i) => <span key={i}>{i < Math.floor(s.rating) ? '★' : '☆'}</span>)}</div></td>
                     <td className="px-4 py-3 font-semibold text-slate-900">{s.totalOrders}</td>
                     <td className="px-4 py-3"><span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700"><CheckCircle size={12} /> فعال</span></td>
+                    <td className="px-4 py-3 print:hidden"><RecordActions compact onEdit={() => editSupplier(s.id)} onDelete={() => deleteSupplier(s.id)} onPrint={() => window.print()} /></td>
                   </tr>
                 ))}
               </tbody>

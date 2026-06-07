@@ -3,6 +3,7 @@ import { Plus, Search, Cloud, CloudOff, RefreshCw, Loader2 } from 'lucide-react'
 import { dbLedger, AFN, persianDate } from '../db/database';
 import { neonLedger, testConnection } from '../db/neon';
 import { Transaction } from '../types';
+import RecordActions from '../components/RecordActions';
 
 export default function Accounting() {
   const [showForm, setShowForm] = useState(false);
@@ -11,6 +12,7 @@ export default function Accounting() {
   const [desc, setDesc] = useState('');
   const [type, setType] = useState<'sale' | 'expense' | 'payment_in' | 'payment_out'>('sale');
   const [amount, setAmount] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [ledger, setLedger] = useState<Transaction[]>([]);
   const [dataSource, setDataSource] = useState<'neon' | 'local'>('local');
@@ -57,6 +59,24 @@ export default function Accounting() {
     const amt = Number(amount);
     if (amt <= 0) return;
     const isDebit = type === 'sale' || type === 'payment_in';
+
+    if (editingId) {
+      const updated = dbLedger.update(editingId, {
+        title: title.trim(),
+        description: desc.trim() || '—',
+        type,
+        debit: isDebit ? amt : 0,
+        credit: isDebit ? 0 : amt,
+      });
+      setLedger(updated);
+      setEditingId(null);
+      setShowForm(false);
+      setTitle('');
+      setDesc('');
+      setAmount('');
+      return;
+    }
+
     const newId = `TRX-${String(Date.now()).slice(-5)}`;
 
     const newTx: Transaction = {
@@ -87,6 +107,21 @@ export default function Accounting() {
     await loadData();
   };
 
+  const editTx = (tx: Transaction) => {
+    setEditingId(tx.id);
+    setTitle(tx.title);
+    setDesc(tx.description || '');
+    setType(tx.type as 'sale' | 'expense' | 'payment_in' | 'payment_out');
+    setAmount(String(tx.debit || tx.credit));
+    setShowForm(true);
+  };
+
+  const deleteTx = (id: string) => {
+    if (!confirm('آیا از حذف این تراکنش مطمئن هستید؟')) return;
+    const updated = dbLedger.remove(id);
+    setLedger(updated);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -102,6 +137,7 @@ export default function Accounting() {
           <button onClick={loadData} className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white p-2 text-slate-600 hover:bg-slate-50" title="بارگذاری مجدد">
             {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
           </button>
+          <button onClick={() => window.print()} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">پرینت</button>
           <button onClick={() => setShowForm(true)} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
             <Plus size={16} /> تراکنش جدید
           </button>
@@ -117,7 +153,7 @@ export default function Accounting() {
 
       {showForm && (
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-900 mb-3">ثبت تراکنش جدید</h3>
+          <h3 className="text-sm font-bold text-slate-900 mb-3">{editingId ? 'ویرایش تراکنش' : 'ثبت تراکنش جدید'}</h3>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="عنوان تراکنش" className="rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none" />
             <input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="توضیحات" className="rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none" />
@@ -130,8 +166,8 @@ export default function Accounting() {
             <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="مبلغ (AFN)" className="rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none" />
           </div>
           <div className="mt-3 flex gap-2">
-            <button onClick={saveTx} className="rounded-xl bg-slate-900 px-5 py-2 text-sm font-medium text-white hover:bg-slate-800">ثبت در {dataSource === 'neon' ? 'Neon' : 'محلی'}</button>
-            <button onClick={() => setShowForm(false)} className="rounded-xl border border-slate-300 px-5 py-2 text-sm text-slate-600 hover:bg-slate-50">انصراف</button>
+            <button onClick={saveTx} className="rounded-xl bg-slate-900 px-5 py-2 text-sm font-medium text-white hover:bg-slate-800">{editingId ? 'ذخیره تغییرات' : `ثبت در ${dataSource === 'neon' ? 'Neon' : 'محلی'}`}</button>
+            <button onClick={() => { setShowForm(false); setEditingId(null); }} className="rounded-xl border border-slate-300 px-5 py-2 text-sm text-slate-600 hover:bg-slate-50">انصراف</button>
           </div>
         </div>
       )}
@@ -146,11 +182,11 @@ export default function Accounting() {
             <thead><tr className="border-b border-slate-200 bg-slate-50 text-xs text-slate-500">
               <th className="px-4 py-3 font-semibold">شماره</th><th className="px-4 py-3 font-semibold">تاریخ</th><th className="px-4 py-3 font-semibold">نوع</th>
               <th className="px-4 py-3 font-semibold">عنوان</th><th className="px-4 py-3 font-semibold">واریزی</th><th className="px-4 py-3 font-semibold">برداشت</th>
-              <th className="px-4 py-3 font-semibold">مانده</th><th className="px-4 py-3 font-semibold">وضعیت</th>
+              <th className="px-4 py-3 font-semibold">مانده</th><th className="px-4 py-3 font-semibold">وضعیت</th><th className="px-4 py-3 font-semibold print:hidden">عملیات</th>
             </tr></thead>
             <tbody className="divide-y divide-slate-100">
               {filtered.length === 0 && !loading && (
-                <tr><td colSpan={8} className="px-4 py-10 text-center text-slate-400">هیچ تراکنشی یافت نشد</td></tr>
+                <tr><td colSpan={9} className="px-4 py-10 text-center text-slate-400">هیچ تراکنشی یافت نشد</td></tr>
               )}
               {[...filtered].reverse().map((tx) => (
                 <tr key={tx.id} className="hover:bg-slate-50/60">
@@ -162,6 +198,7 @@ export default function Accounting() {
                   <td className="px-4 py-3 font-semibold text-red-600">{tx.credit > 0 ? AFN(tx.credit) : '—'}</td>
                   <td className="px-4 py-3 text-slate-700">{AFN(tx.balance)}</td>
                   <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-xs font-medium ${tx.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : tx.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>{tx.status === 'confirmed' ? 'تایید' : tx.status === 'pending' ? 'در انتظار' : 'لغو'}</span></td>
+                  <td className="px-4 py-3 print:hidden"><RecordActions compact onEdit={() => editTx(tx)} onDelete={() => deleteTx(tx.id)} onPrint={() => window.print()} /></td>
                 </tr>
               ))}
             </tbody>

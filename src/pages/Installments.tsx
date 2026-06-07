@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Plus, X } from 'lucide-react';
 import { dbInstallments, dbLedger, AFN, persianDate } from '../db/database';
 import { InstallmentPlan } from '../types';
+import RecordActions from '../components/RecordActions';
 
 export default function Installments() {
   const [plans, setPlans] = useState<InstallmentPlan[]>(dbInstallments.getAll());
@@ -32,11 +33,24 @@ export default function Installments() {
     setPlans(dbInstallments.getAll());
   };
 
+  const editPlan = (plan: InstallmentPlan) => {
+    const next = prompt('مبلغ کل جدید را وارد کنید:', String(plan.totalAmount));
+    if (next === null) return;
+    const total = Number(next);
+    if (total <= 0) return;
+    setPlans(dbInstallments.update(plan.id, { totalAmount: total, remainingAmount: total - plan.paidAmount }));
+  };
+
+  const deletePlan = (planId: string) => {
+    if (!confirm('آیا از حذف این طرح قسطی مطمئن هستید؟')) return;
+    setPlans(dbInstallments.remove(planId));
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div><h2 className="text-xl font-bold text-slate-900">مدیریت اقساط</h2><p className="text-sm text-slate-500">{plans.length} طرح · {txHistory.length} تراکنش</p></div>
-        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"><Plus size={18} /> طرح جدید</button>
+        <div className="flex gap-2"><button onClick={() => window.print()} className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">پرینت</button><button onClick={() => setShowForm(true)} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"><Plus size={18} /> طرح جدید</button></div>
       </div>
 
       {showForm && (
@@ -62,7 +76,7 @@ export default function Installments() {
             <div key={plan.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex items-center justify-between">
                 <div><p className="text-xs text-slate-500">{plan.id}</p><p className="text-base font-bold text-slate-900">{plan.customerName}</p></div>
-                <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${plan.status === 'active' ? 'bg-blue-50 text-blue-700' : plan.status === 'overdue' ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>{plan.status === 'active' ? 'درجریان' : plan.status === 'overdue' ? 'معوق' : 'تکمیل شده'}</span>
+                <div className="flex items-center gap-2"><span className={`rounded-full px-2.5 py-1 text-xs font-medium ${plan.status === 'active' ? 'bg-blue-50 text-blue-700' : plan.status === 'overdue' ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>{plan.status === 'active' ? 'درجریان' : plan.status === 'overdue' ? 'معوق' : 'تکمیل شده'}</span><RecordActions compact onEdit={() => editPlan(plan)} onDelete={() => deletePlan(plan.id)} onPrint={() => window.print()} /></div>
               </div>
               <div className="mt-4 flex items-center justify-between rounded-xl bg-slate-50 p-3">
                 <div><p className="text-[11px] text-slate-500">کل مبلغ</p><p className="text-sm font-semibold text-slate-900">{AFN(plan.totalAmount)}</p></div>

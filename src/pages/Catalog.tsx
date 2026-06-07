@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
-import { Search, Plus, Trash2, Edit3 } from 'lucide-react';
+import { Search, Plus } from 'lucide-react';
 import { dbInventory, dbLedger, AFN, persianDate } from '../db/database';
 import { InventoryItem, ItemUnit } from '../types';
+import RecordActions from '../components/RecordActions';
 
 export default function Catalog() {
   const [items, setItems] = useState<InventoryItem[]>(dbInventory.getAll());
@@ -63,6 +64,7 @@ export default function Catalog() {
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="جستجوی کالا..." className="w-56 rounded-xl border border-slate-300 bg-white py-2 pr-9 pl-3 text-sm focus:border-indigo-500 focus:outline-none" />
           </div>
           <button onClick={openNew} className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"><Plus size={16} /> جدید</button>
+          <button onClick={() => window.print()} className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">پرینت</button>
         </div>
       </div>
 
@@ -99,10 +101,7 @@ export default function Catalog() {
                   <td className="px-4 py-3 text-slate-900">{item.quantity}</td>
                   <td className="px-4 py-3 text-slate-800">{AFN(item.unitPriceAFN)}</td>
                   <td className="px-4 py-3 font-semibold text-indigo-700">{AFN(item.unitPriceAFN * item.quantity)}</td>
-                  <td className="px-4 py-3"><div className="flex items-center gap-1">
-                    <button onClick={() => openEdit(item)} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"><Edit3 size={14} /></button>
-                    <button onClick={() => remove(item.id)} className="rounded-lg p-1.5 text-red-500 hover:bg-red-50"><Trash2 size={14} /></button>
-                  </div></td>
+                  <td className="px-4 py-3"><RecordActions compact onEdit={() => openEdit(item)} onDelete={() => remove(item.id)} onPrint={() => window.print()} /></td>
                 </tr>
               ))}
             </tbody>
