@@ -4,6 +4,7 @@ import { suppliers } from '../data/mockData';
 import { dbLedger, AFN, persianDate } from '../db/database';
 import RecordActions from '../components/RecordActions';
 import { printMinimalDocument } from '../utils/printTemplates';
+import { neonDelete } from '../db/neon';
 
 export default function Purchases() {
   const [tab, setTab] = useState<'suppliers' | 'history'>('suppliers');
@@ -37,8 +38,9 @@ export default function Purchases() {
     setSupplierList((list) => list.map((s) => s.id === id ? { ...s, name: next } : s));
   };
 
-  const deleteSupplier = (id: string) => {
+  const deleteSupplier = async (id: string) => {
     if (!confirm('آیا از حذف تامین‌کننده مطمئن هستید؟')) return;
+    await neonDelete('suppliers', id);
     setSupplierList((list) => list.filter((s) => s.id !== id));
   };
 

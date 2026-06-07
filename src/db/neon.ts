@@ -54,6 +54,27 @@ export const neonInventory = {
       return { id: Number(r.id), name: r.name, unit: r.unit, quantity: Number(r.quantity), unitPriceAFN: Number(r.unit_price_afn) };
     } catch { return null; }
   },
+  async update(id: number, patch: Partial<InventoryItem>): Promise<boolean> {
+    try {
+      await sql()`
+        UPDATE inventory_items SET
+          name = COALESCE(${patch.name ?? null}, name),
+          unit = COALESCE(${patch.unit ?? null}, unit),
+          quantity = COALESCE(${patch.quantity ?? null}, quantity),
+          unit_price_afn = COALESCE(${patch.unitPriceAFN ?? null}, unit_price_afn),
+          category = COALESCE(${patch.category ?? null}, category),
+          updated_at = NOW()
+        WHERE id = ${id}
+      `;
+      return true;
+    } catch { return false; }
+  },
+  async remove(id: number): Promise<boolean> {
+    try {
+      await sql()`DELETE FROM inventory_items WHERE id = ${id}`;
+      return true;
+    } catch { return false; }
+  },
 };
 
 /* ─── Transactions ─── */
@@ -95,6 +116,28 @@ export const neonLedger = {
       return rows[0]?.c || 0;
     } catch { return 0; }
   },
+  async update(id: string, patch: Partial<Transaction>): Promise<boolean> {
+    try {
+      await sql()`
+        UPDATE transactions SET
+          title = COALESCE(${patch.title ?? null}, title),
+          description = COALESCE(${patch.description ?? null}, description),
+          type = COALESCE(${patch.type ?? null}, type),
+          status = COALESCE(${patch.status ?? null}, status),
+          debit = COALESCE(${patch.debit ?? null}, debit),
+          credit = COALESCE(${patch.credit ?? null}, credit),
+          balance = COALESCE(${patch.balance ?? null}, balance)
+        WHERE id = ${id}
+      `;
+      return true;
+    } catch { return false; }
+  },
+  async remove(id: string): Promise<boolean> {
+    try {
+      await sql()`DELETE FROM transactions WHERE id = ${id}`;
+      return true;
+    } catch { return false; }
+  },
 };
 
 /* ─── Installments ─── */
@@ -135,7 +178,29 @@ export const neonInstallments = {
       return true;
     } catch { return false; }
   },
+  async remove(planId: string): Promise<boolean> {
+    try {
+      await sql()`DELETE FROM installment_plans WHERE id = ${planId}`;
+      return true;
+    } catch { return false; }
+  },
 };
+
+export async function neonDelete(
+  table: 'customers' | 'suppliers' | 'employees' | 'invoices' | 'payroll_records' | 'tax_records' | 'activity_log',
+  id: string,
+): Promise<boolean> {
+  try {
+    if (table === 'customers') await sql()`DELETE FROM customers WHERE id = ${id}`;
+    if (table === 'suppliers') await sql()`DELETE FROM suppliers WHERE id = ${id}`;
+    if (table === 'employees') await sql()`DELETE FROM employees WHERE id = ${id}`;
+    if (table === 'invoices') await sql()`DELETE FROM invoices WHERE id = ${id}`;
+    if (table === 'payroll_records') await sql()`DELETE FROM payroll_records WHERE id = ${id}`;
+    if (table === 'tax_records') await sql()`DELETE FROM tax_records WHERE id = ${id}`;
+    if (table === 'activity_log') await sql()`DELETE FROM activity_log WHERE id = ${id}`;
+    return true;
+  } catch { return false; }
+}
 
 /* ─── Customers ─── */
 export async function neonCustomers() {

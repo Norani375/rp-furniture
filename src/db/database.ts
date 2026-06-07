@@ -8,6 +8,7 @@ import {
   ReportFilter, ReportSummary,
   ProductionRecipe, ProductionOrder, BankAccount, ChequeRecord, SystemNotification,
 } from '../types';
+import { calculateGrossProfit, calculateProductionCost } from '../utils/costing';
 
 // Re-export for API layer
 export type { InventoryItem, Transaction, InstallmentPlan, CurrencySettings, ReportFilter, ReportSummary };
@@ -220,6 +221,8 @@ const seedRecipes: ProductionRecipe[] = [
     outputQuantity: 1,
     laborCost: 1200,
     overheadCost: 600,
+    wastePercent: 3,
+    profitPercent: 20,
     createdAt: persianDate(),
     materials: [
       { itemId: 1, name: 'تخته لمونشین ۱.۸۳/۲.۴۴cm', quantity: 2, unit: 'دانه', unitCost: 2200 },
@@ -234,6 +237,8 @@ const seedRecipes: ProductionRecipe[] = [
     outputQuantity: 1,
     laborCost: 900,
     overheadCost: 400,
+    wastePercent: 3,
+    profitPercent: 20,
     createdAt: persianDate(),
     materials: [
       { itemId: 2, name: 'تخته لمونشین 1.83/3.66', quantity: 1, unit: 'دانه', unitCost: 3200 },
@@ -252,7 +257,15 @@ export const dbProduction = {
     if (!recipe) return null;
 
     const inventory = dbInventory.getAll();
-    let materialCost = 0;
+    const costing = calculateProductionCost({
+      materials: recipe.materials,
+      outputQuantity: recipe.outputQuantity,
+      productionQuantity: quantity,
+      laborCost: recipe.laborCost,
+      overheadCost: recipe.overheadCost,
+      wastePercent: recipe.wastePercent ?? 3,
+      profitPercent: recipe.profitPercent ?? 20,
+    });
 
     // ۱. کسر مواد اولیه (Trigger)
     recipe.materials.forEach((material) => {
@@ -260,8 +273,6 @@ export const dbProduction = {
       if (item) {
         const consume = material.quantity * quantity;
         const newQty = Math.max(0, item.quantity - consume);
-        materialCost += consume * material.unitCost;
-
         dbInventory.update(material.itemId, {
           quantity: newQty,
         });
@@ -272,7 +283,7 @@ export const dbProduction = {
           type: 'inventory_out',
           status: 'confirmed',
           title: `مصرف ${material.name} برای تولید`,
-          description: `${consume} ${material.unit} برای ${recipe.productName}`,
+          description: `${consume} ${material.unit} برای ${recipe.productName} | قیمت واحد: ${AFN(material.unitCost)}`,
           debit: 0,
           credit: consume * material.unitCost,
           refType: 'production',
@@ -281,8 +292,6 @@ export const dbProduction = {
         });
       }
     });
-
-    const totalCost = materialCost + (recipe.laborCost + recipe.overheadCost) * quantity;
 
     // ۲. افزودن محصول نهایی به انبار (اگر وجود داشته باشد)
     const finishedProduct = inventory.find((i) => i.name === recipe.productName);
@@ -297,7 +306,7 @@ export const dbProduction = {
         name: recipe.productName,
         unit: recipe.outputUnit,
         quantity: quantity,
-        unitPriceAFN: totalCost,
+        unitPriceAFN: Math.round(costing.unitCost),
         category: 'محصول نهایی',
       });
     }
@@ -308,8 +317,8 @@ export const dbProduction = {
       type: 'inventory_in',
       status: 'confirmed',
       title: `تولید ${recipe.productName}`,
-      description: `${quantity} ${recipe.outputUnit}`,
-      debit: totalCost,
+      description: `مواد: ${AFN(costing.materialCost)} | ضایعات: ${AFN(costing.wasteCost)} | مزد: ${AFN(costing.laborCost)} | هزینه جانبی: ${AFN(costing.overheadCost)} | قیمت تمام‌شده واحد: ${AFN(costing.unitCost)} | قیمت پیشنهادی: ${AFN(costing.suggestedSalePrice)}`,
+      debit: costing.totalCost,
       credit: 0,
       refType: 'production',
       refId: recipeId,
@@ -321,7 +330,7 @@ export const dbProduction = {
       recipeId,
       productName: recipe.productName,
       quantity,
-      totalCost,
+      totalCost: costing.totalCost,
       status: 'completed',
       date: persianDate(),
     };
@@ -416,8 +425,9 @@ export const dbReports = {
     const sales = dbLedger.getAll().filter((t) => t.type === 'sale').reduce((s, t) => s + t.debit, 0);
     const purchases = dbLedger.getAll().filter((t) => t.type === 'purchase').reduce((s, t) => s + t.credit, 0);
     const cogs = this.getCOGS();
-    const grossProfit = sales - cogs;
-    return { sales, purchases, cogs, grossProfit };
+    const expenses = dbLedger.getAll().filter((t) => ['expense', 'payroll', 'tax', 'payment_out'].includes(t.type)).reduce((s, t) => s + t.credit, 0);
+    const profit = calculateGrossProfit(sales, cogs, expenses);
+    return { sales, purchases, cogs, expenses, ...profit };
   },
 };
 

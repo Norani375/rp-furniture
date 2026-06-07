@@ -4,6 +4,7 @@ import { dbInventory, dbLedger, AFN, persianDate } from '../db/database';
 import { InventoryItem, ItemUnit } from '../types';
 import RecordActions from '../components/RecordActions';
 import { printMinimalDocument } from '../utils/printTemplates';
+import { neonInventory } from '../db/neon';
 
 export default function Catalog() {
   const [items, setItems] = useState<InventoryItem[]>(dbInventory.getAll());
@@ -40,22 +41,25 @@ export default function Catalog() {
     setQty(String(item.quantity)); setPrice(String(item.unitPriceAFN)); setShowForm(true);
   };
 
-  const save = () => {
+  const save = async () => {
     const q = Number(qty); const p = Number(price);
     if (!name.trim() || q <= 0 || p <= 0) return;
     if (editing) {
       dbInventory.update(editing.id, { name: name.trim(), unit, quantity: q, unitPriceAFN: p });
+      await neonInventory.update(editing.id, { name: name.trim(), unit, quantity: q, unitPriceAFN: p });
     } else {
       dbInventory.add({ id: 0, name: name.trim(), unit, quantity: q, unitPriceAFN: p });
+      await neonInventory.add({ name: name.trim(), unit, quantity: q, unitPriceAFN: p, category: 'عمومی' });
       dbLedger.add({ date: persianDate(), type: 'inventory_in', status: 'confirmed', title: `ورود کالا: ${name.trim()}`, description: `${q} ${unit} — ${AFN(p * q)}`, debit: p * q, credit: 0, refType: 'inventory', refId: '', createdBy: 'کاربر' });
     }
     setItems(dbInventory.getAll()); setShowForm(false); resetForm();
   };
 
-  const remove = (id: number) => {
+  const remove = async (id: number) => {
     if (!confirm('آیا از حذف این کالا مطمئن هستید؟')) return;
     const item = items.find((i) => i.id === id);
     dbInventory.remove(id);
+    await neonInventory.remove(id);
     if (item) {
       dbLedger.add({ date: persianDate(), type: 'inventory_out', status: 'confirmed', title: `حذف کالا: ${item.name}`, description: `${item.quantity} ${item.unit}`, debit: 0, credit: item.unitPriceAFN * item.quantity, refType: 'inventory', refId: String(id), createdBy: 'کاربر' });
     }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Package, Wallet, AlertTriangle, RefreshCw, Loader2 } from 'lucide-react';
 import { neonLedger, neonStats, testConnection } from '../db/neon';
 import { inventoryItems } from '../data/mockData';
-import { AFN, dbReports } from '../db/database';
+import { AFN } from '../db/database';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({ 

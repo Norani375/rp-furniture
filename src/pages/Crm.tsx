@@ -4,6 +4,7 @@ import { customers } from '../data/mockData';
 import { dbLedger, AFN, persianDate } from '../db/database';
 import RecordActions from '../components/RecordActions';
 import { printMinimalDocument } from '../utils/printTemplates';
+import { neonDelete } from '../db/neon';
 
 export default function Crm() {
   const [tab, setTab] = useState<'customers' | 'interactions'>('customers');
@@ -36,8 +37,9 @@ export default function Crm() {
     setCustomerList((list) => list.map((c) => c.id === id ? { ...c, name: next } : c));
   };
 
-  const deleteCustomer = (id: string) => {
+  const deleteCustomer = async (id: string) => {
     if (!confirm('آیا از حذف مشتری مطمئن هستید؟')) return;
+    await neonDelete('customers', id);
     setCustomerList((list) => list.filter((c) => c.id !== id));
   };
 

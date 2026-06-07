@@ -6,6 +6,7 @@ import InvoicePrint from '../components/InvoicePrint';
 import { Invoice } from '../types';
 import RecordActions from '../components/RecordActions';
 import { printMinimalDocument } from '../utils/printTemplates';
+import { neonDelete } from '../db/neon';
 
 export default function Sales() {
   const [tab, setTab] = useState<'customers' | 'invoices' | 'history'>('customers');
@@ -41,8 +42,9 @@ export default function Sales() {
     setInvoiceList((list) => list.map((i) => i.id === inv.id ? { ...i, amount: Number(next) } : i));
   };
 
-  const deleteInvoice = (id: string) => {
+  const deleteInvoice = async (id: string) => {
     if (!confirm('آیا از حذف فاکتور مطمئن هستید؟')) return;
+    await neonDelete('invoices', id);
     setInvoiceList((list) => list.filter((i) => i.id !== id));
   };
 

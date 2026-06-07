@@ -4,6 +4,7 @@ import { dbInstallments, dbLedger, AFN, persianDate } from '../db/database';
 import { InstallmentPlan } from '../types';
 import RecordActions from '../components/RecordActions';
 import { printMinimalDocument } from '../utils/printTemplates';
+import { neonInstallments } from '../db/neon';
 
 export default function Installments() {
   const [plans, setPlans] = useState<InstallmentPlan[]>(dbInstallments.getAll());
@@ -51,8 +52,9 @@ export default function Installments() {
     setPlans(dbInstallments.update(plan.id, { totalAmount: total, remainingAmount: total - plan.paidAmount }));
   };
 
-  const deletePlan = (planId: string) => {
+  const deletePlan = async (planId: string) => {
     if (!confirm('آیا از حذف این طرح قسطی مطمئن هستید؟')) return;
+    await neonInstallments.remove(planId);
     setPlans(dbInstallments.remove(planId));
   };
 

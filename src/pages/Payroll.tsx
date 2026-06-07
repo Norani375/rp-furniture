@@ -4,6 +4,7 @@ import { employees, payrollRecords } from '../data/mockData';
 import { dbLedger, AFN, persianDate } from '../db/database';
 import RecordActions from '../components/RecordActions';
 import { printMinimalDocument } from '../utils/printTemplates';
+import { neonDelete } from '../db/neon';
 
 export default function Payroll() {
   const [tab, setTab] = useState<'employees' | 'payments' | 'history'>('employees');
@@ -37,8 +38,9 @@ export default function Payroll() {
     setEmployeeList((list) => list.map((e) => e.id === id ? { ...e, salary: Number(nextSalary) } : e));
   };
 
-  const deleteEmployee = (id: string) => {
+  const deleteEmployee = async (id: string) => {
     if (!confirm('آیا از حذف کارمند مطمئن هستید؟')) return;
+    await neonDelete('employees', id);
     setEmployeeList((list) => list.filter((e) => e.id !== id));
   };
 

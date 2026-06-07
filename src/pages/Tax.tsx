@@ -4,6 +4,7 @@ import { taxRecords } from '../data/mockData';
 import { dbLedger, AFN, persianDate } from '../db/database';
 import RecordActions from '../components/RecordActions';
 import { printMinimalDocument } from '../utils/printTemplates';
+import { neonDelete } from '../db/neon';
 
 export default function Tax() {
   const [tab, setTab] = useState<'records' | 'history'>('records');
@@ -37,8 +38,9 @@ export default function Tax() {
     setTaxList((list) => list.map((t) => t.id === id ? { ...t, amount: Number(next) } : t));
   };
 
-  const deleteTax = (id: string) => {
+  const deleteTax = async (id: string) => {
     if (!confirm('آیا از حذف رکورد مالیات مطمئن هستید؟')) return;
+    await neonDelete('tax_records', id);
     setTaxList((list) => list.filter((t) => t.id !== id));
   };
 

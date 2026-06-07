@@ -82,6 +82,13 @@ export default function Accounting() {
         debit: isDebit ? amt : 0,
         credit: isDebit ? 0 : amt,
       });
+      await neonLedger.update(editingId, {
+        title: title.trim(),
+        description: desc.trim() || '—',
+        type,
+        debit: isDebit ? amt : 0,
+        credit: isDebit ? 0 : amt,
+      });
       setLedger(updated);
       setEditingId(null);
       setShowForm(false);
@@ -130,9 +137,10 @@ export default function Accounting() {
     setShowForm(true);
   };
 
-  const deleteTx = (id: string) => {
+  const deleteTx = async (id: string) => {
     if (!confirm('آیا از حذف این تراکنش مطمئن هستید؟')) return;
     const updated = dbLedger.remove(id);
+    await neonLedger.remove(id);
     setLedger(updated);
   };
 

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Download, Filter, Calendar, PieChart as PieIcon, BarChart3 } from 'lucide-react';
-import { dbLedger, AFN } from '../db/database';
+import { dbLedger, AFN, dbReports } from '../db/database';
 import { TransactionType, ReportFilter } from '../types';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
@@ -26,6 +26,7 @@ export default function Reports() {
 
   const filtered = useMemo(() => dbLedger.filter(filter), [filter, ledger]);
   const summary = useMemo(() => dbLedger.summary(filter), [filter, ledger]);
+  const profitLoss = useMemo(() => dbReports.getProfitLoss(), [ledger]);
 
   const chartData = useMemo(() => {
     const grouped: Record<string, { date: string; debit: number; credit: number }> = {};
@@ -109,6 +110,12 @@ export default function Reports() {
                 <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">مجموع واریزی</p><p className="text-lg font-bold text-emerald-600">{AFN(summary.totalDebit)}</p></div>
                 <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">مجموع برداشت</p><p className="text-lg font-bold text-red-600">{AFN(summary.totalCredit)}</p></div>
                 <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">خالص</p><p className={`text-lg font-bold ${summary.netBalance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{AFN(summary.netBalance)}</p></div>
+              </div>
+              <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-3"><p className="text-xs text-indigo-700">فروش کل</p><p className="text-lg font-bold text-indigo-900">{AFN(profitLoss.sales)}</p></div>
+                <div className="rounded-xl border border-amber-100 bg-amber-50 p-3"><p className="text-xs text-amber-700">COGS / تمام‌شده</p><p className="text-lg font-bold text-amber-900">{AFN(profitLoss.cogs)}</p></div>
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3"><p className="text-xs text-emerald-700">سود خالص</p><p className="text-lg font-bold text-emerald-900">{AFN(profitLoss.netProfit)}</p></div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3"><p className="text-xs text-slate-500">مارجین سود</p><p className="text-lg font-bold text-slate-900">{profitLoss.margin.toFixed(1)}٪</p></div>
               </div>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
                 {ALL_TYPES.filter((t) => summary.byType[t].count > 0).map((t) => (

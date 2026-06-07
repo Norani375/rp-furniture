@@ -208,6 +208,8 @@ export interface ProductionRecipe {
   outputQuantity: number;
   laborCost: number;
   overheadCost: number;
+  wastePercent?: number;
+  profitPercent?: number;
   materials: BOMItem[];
   createdAt: string;
 }
