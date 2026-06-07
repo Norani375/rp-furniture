@@ -3,6 +3,7 @@ import { Phone, Mail, Calendar, Plus } from 'lucide-react';
 import { customers } from '../data/mockData';
 import { dbLedger, AFN, persianDate } from '../db/database';
 import RecordActions from '../components/RecordActions';
+import { printMinimalDocument } from '../utils/printTemplates';
 
 export default function Crm() {
   const [tab, setTab] = useState<'customers' | 'interactions'>('customers');
@@ -17,6 +18,15 @@ export default function Crm() {
     dbLedger.add({ date: persianDate(), type: 'payment_in', status: 'confirmed', title: `تعامل با مشتری: ${name.trim()}`, description: note.trim() || '—', debit: 0, credit: 0, refType: 'crm', refId: name.trim(), createdBy: 'کاربر' });
     setShowForm(false); setName(''); setNote('');
   };
+
+  const printCrm = () => printMinimalDocument({
+    title: 'فاکتور / گزارش مشتریان',
+    subtitle: 'CRM',
+    party: 'واحد فروش',
+    headers: ['نام مشتری', 'شرکت', 'ایمیل', 'تلفن', 'کل خرید', 'وضعیت'],
+    rows: customerList.map((c) => [c.name, c.company, c.email, c.phone, AFN(c.totalSpent), c.status === 'active' ? 'فعال' : 'غیرفعال']),
+    totals: [{ label: 'تعداد مشتریان', value: String(customerList.length) }],
+  });
 
   const editCustomer = (id: string) => {
     const current = customerList.find((c) => c.id === id);
@@ -35,7 +45,7 @@ export default function Crm() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div><h2 className="text-xl font-bold text-slate-900">CRM — مدیریت ارتباط با مشتریان</h2><p className="text-sm text-slate-500">{customerList.length} مشتری · {interactions.length} تعامل</p></div>
-        <div className="flex gap-2"><button onClick={() => window.print()} className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">پرینت</button><button onClick={() => setShowForm(true)} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"><Plus size={16} /> تعامل جدید</button></div>
+        <div className="flex gap-2"><button onClick={printCrm} className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">پرینت</button><button onClick={() => setShowForm(true)} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"><Plus size={16} /> تعامل جدید</button></div>
       </div>
 
       {showForm && (
@@ -63,7 +73,7 @@ export default function Crm() {
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-lg font-bold text-white">{c.name.charAt(0)}</div>
                   <div><h3 className="font-semibold text-slate-900">{c.name}</h3><p className="text-xs text-slate-500">{c.company}</p></div>
                 </div>
-                <div className="flex items-center gap-2"><span className={`rounded-full px-2.5 py-1 text-xs font-medium ${c.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>{c.status === 'active' ? 'فعال' : 'غیرفعال'}</span><RecordActions compact onEdit={() => editCustomer(c.id)} onDelete={() => deleteCustomer(c.id)} onPrint={() => window.print()} /></div>
+                <div className="flex items-center gap-2"><span className={`rounded-full px-2.5 py-1 text-xs font-medium ${c.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>{c.status === 'active' ? 'فعال' : 'غیرفعال'}</span><RecordActions compact onEdit={() => editCustomer(c.id)} onDelete={() => deleteCustomer(c.id)} onPrint={printCrm} /></div>
               </div>
               <div className="mt-4 space-y-2 text-sm text-slate-600"><div className="flex items-center gap-2"><Mail size={14} /> {c.email}</div><div className="flex items-center gap-2"><Phone size={14} /> {c.phone}</div><div className="flex items-center gap-2"><Calendar size={14} /> آخرین تماس: {c.lastContact}</div></div>
               <div className="mt-4 border-t border-slate-100 pt-3"><p className="text-xs text-slate-500">کل خرید</p><p className="text-sm font-bold text-slate-900">{AFN(c.totalSpent)}</p></div>

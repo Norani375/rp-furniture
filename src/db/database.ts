@@ -250,8 +250,72 @@ export const dbProduction = {
   completeOrder(recipeId: string, quantity: number) {
     const recipe = dbProduction.getRecipes().find((r) => r.id === recipeId);
     if (!recipe) return null;
-    const materialCost = recipe.materials.reduce((s, m) => s + m.quantity * m.unitCost, 0) * quantity;
+
+    const inventory = dbInventory.getAll();
+    let materialCost = 0;
+
+    // ۱. کسر مواد اولیه (Trigger)
+    recipe.materials.forEach((material) => {
+      const item = inventory.find((i) => i.id === material.itemId);
+      if (item) {
+        const consume = material.quantity * quantity;
+        const newQty = Math.max(0, item.quantity - consume);
+        materialCost += consume * material.unitCost;
+
+        dbInventory.update(material.itemId, {
+          quantity: newQty,
+        });
+
+        // ثبت تراکنش خروج مواد
+        dbLedger.add({
+          date: persianDate(),
+          type: 'inventory_out',
+          status: 'confirmed',
+          title: `مصرف ${material.name} برای تولید`,
+          description: `${consume} ${material.unit} برای ${recipe.productName}`,
+          debit: 0,
+          credit: consume * material.unitCost,
+          refType: 'production',
+          refId: recipeId,
+          createdBy: 'سیستم',
+        });
+      }
+    });
+
     const totalCost = materialCost + (recipe.laborCost + recipe.overheadCost) * quantity;
+
+    // ۲. افزودن محصول نهایی به انبار (اگر وجود داشته باشد)
+    const finishedProduct = inventory.find((i) => i.name === recipe.productName);
+    if (finishedProduct) {
+      dbInventory.update(finishedProduct.id, {
+        quantity: finishedProduct.quantity + quantity,
+      });
+    } else {
+      // اگر محصول نهایی در لیست نبود، به عنوان کالای جدید اضافه می‌شود
+      dbInventory.add({
+        id: 0,
+        name: recipe.productName,
+        unit: recipe.outputUnit,
+        quantity: quantity,
+        unitPriceAFN: totalCost,
+        category: 'محصول نهایی',
+      });
+    }
+
+    // ۳. ثبت تراکنش ورود محصول نهایی
+    dbLedger.add({
+      date: persianDate(),
+      type: 'inventory_in',
+      status: 'confirmed',
+      title: `تولید ${recipe.productName}`,
+      description: `${quantity} ${recipe.outputUnit}`,
+      debit: totalCost,
+      credit: 0,
+      refType: 'production',
+      refId: recipeId,
+      createdBy: 'سیستم',
+    });
+
     const order: ProductionOrder = {
       id: `PROD-${Date.now().toString().slice(-6)}`,
       recipeId,
@@ -261,9 +325,10 @@ export const dbProduction = {
       status: 'completed',
       date: persianDate(),
     };
+
     const orders = [...dbProduction.getOrders(), order];
     dbProduction.saveOrders(orders);
-    dbLedger.add({ date: order.date, type: 'inventory_in', status: 'confirmed', title: `تولید ${recipe.productName}`, description: `${quantity} ${recipe.outputUnit}`, debit: totalCost, credit: 0, refType: 'production', refId: order.id, createdBy: 'کاربر' });
+
     return order;
   },
 };
@@ -331,5 +396,29 @@ export const dbNotifications = {
 
 /* ─── Reset ─── */
 export const dbReset = () => { Object.values(DB).forEach((k) => localStorage.removeItem(k)); window.location.reload(); };
+
+/* ─── گزارش دقیق و خودکار (با فرمول) ─── */
+export const dbReports = {
+  // ارزش واقعی موجودی (با در نظر گرفتن مصرف واقعی)
+  getRealInventoryValue() {
+    const items = dbInventory.getAll();
+    return items.reduce((sum, item) => sum + item.quantity * item.unitPriceAFN, 0);
+  },
+
+  // هزینه تمام‌شده کالاهای تولیدشده (COGS)
+  getCOGS() {
+    const orders = dbProduction.getOrders();
+    return orders.reduce((sum, order) => sum + order.totalCost, 0);
+  },
+
+  // گزارش کامل سود و زیان ساده
+  getProfitLoss() {
+    const sales = dbLedger.getAll().filter((t) => t.type === 'sale').reduce((s, t) => s + t.debit, 0);
+    const purchases = dbLedger.getAll().filter((t) => t.type === 'purchase').reduce((s, t) => s + t.credit, 0);
+    const cogs = this.getCOGS();
+    const grossProfit = sales - cogs;
+    return { sales, purchases, cogs, grossProfit };
+  },
+};
 
 export { AFN, persianDate, nextInvoiceId };

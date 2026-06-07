@@ -3,6 +3,7 @@ import { Search, Plus } from 'lucide-react';
 import { dbInventory, dbLedger, AFN, persianDate } from '../db/database';
 import { InventoryItem, ItemUnit } from '../types';
 import RecordActions from '../components/RecordActions';
+import { printMinimalDocument } from '../utils/printTemplates';
 
 export default function Catalog() {
   const [items, setItems] = useState<InventoryItem[]>(dbInventory.getAll());
@@ -20,6 +21,15 @@ export default function Catalog() {
   }, [items, search]);
 
   const totalValue = filtered.reduce((s, i) => s + i.quantity * i.unitPriceAFN, 0);
+
+  const printCatalog = () => printMinimalDocument({
+    title: 'فاکتور موجودی اجناس',
+    subtitle: 'کاتالوگ کالا',
+    party: 'انبار مرکزی',
+    headers: ['#', 'نام کالا', 'واحد', 'تعداد', 'قیمت واحد', 'قیمت کل'],
+    rows: filtered.map((item) => [item.id, item.name, item.unit, item.quantity, AFN(item.unitPriceAFN), AFN(item.unitPriceAFN * item.quantity)]),
+    totals: [{ label: 'جمع کل موجودی', value: AFN(totalValue) }],
+  });
 
   const resetForm = () => { setName(''); setUnit('دانه'); setQty(''); setPrice(''); setEditing(null); };
 
@@ -64,7 +74,7 @@ export default function Catalog() {
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="جستجوی کالا..." className="w-56 rounded-xl border border-slate-300 bg-white py-2 pr-9 pl-3 text-sm focus:border-indigo-500 focus:outline-none" />
           </div>
           <button onClick={openNew} className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"><Plus size={16} /> جدید</button>
-          <button onClick={() => window.print()} className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">پرینت</button>
+          <button onClick={printCatalog} className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">پرینت</button>
         </div>
       </div>
 
@@ -101,7 +111,7 @@ export default function Catalog() {
                   <td className="px-4 py-3 text-slate-900">{item.quantity}</td>
                   <td className="px-4 py-3 text-slate-800">{AFN(item.unitPriceAFN)}</td>
                   <td className="px-4 py-3 font-semibold text-indigo-700">{AFN(item.unitPriceAFN * item.quantity)}</td>
-                  <td className="px-4 py-3"><RecordActions compact onEdit={() => openEdit(item)} onDelete={() => remove(item.id)} onPrint={() => window.print()} /></td>
+                  <td className="px-4 py-3"><RecordActions compact onEdit={() => openEdit(item)} onDelete={() => remove(item.id)} onPrint={printCatalog} /></td>
                 </tr>
               ))}
             </tbody>

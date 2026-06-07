@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Minus, Plus, Printer, ShoppingCart, Trash2 } from 'lucide-react';
 import { AFN, dbLedger, persianDate } from '../db/database';
 import { inventoryItems } from '../data/mockData';
+import { printMinimalDocument } from '../utils/printTemplates';
 
 type CartItem = { id: number; name: string; price: number; qty: number };
 
@@ -25,7 +26,14 @@ export default function Pos() {
   const checkout = () => {
     if (cart.length === 0) return;
     dbLedger.add({ date: persianDate(), type: 'sale', status: 'confirmed', title: `فروش POS - ${customer}`, description: `${cart.length} قلم کالا`, debit: total, credit: 0, refType: 'pos', refId: `POS-${Date.now()}`, createdBy: 'فروشنده' });
-    window.print();
+    printMinimalDocument({
+      title: 'رسید فروش POS',
+      subtitle: 'فروش سریع',
+      party: customer,
+      headers: ['کالا', 'تعداد', 'قیمت واحد', 'قیمت کل'],
+      rows: cart.map((i) => [i.name, i.qty, AFN(i.price), AFN(i.price * i.qty)]),
+      totals: [{ label: 'جمع کل', value: AFN(total) }],
+    });
     setCart([]);
   };
 

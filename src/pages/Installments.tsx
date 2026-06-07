@@ -3,6 +3,7 @@ import { Plus, X } from 'lucide-react';
 import { dbInstallments, dbLedger, AFN, persianDate } from '../db/database';
 import { InstallmentPlan } from '../types';
 import RecordActions from '../components/RecordActions';
+import { printMinimalDocument } from '../utils/printTemplates';
 
 export default function Installments() {
   const [plans, setPlans] = useState<InstallmentPlan[]>(dbInstallments.getAll());
@@ -22,6 +23,15 @@ export default function Installments() {
     setPlans(dbInstallments.getAll());
     setShowForm(false); setName(''); setAmount(''); setCount('4');
   };
+
+  const printInstallments = () => printMinimalDocument({
+    title: 'فاکتور / گزارش اقساط',
+    subtitle: 'طرح‌های قسطی',
+    party: 'واحد فروش',
+    headers: ['شماره', 'مشتری', 'کل مبلغ', 'پرداخت شده', 'باقیمانده', 'وضعیت'],
+    rows: plans.map((p) => [p.id, p.customerName, AFN(p.totalAmount), AFN(p.paidAmount), AFN(p.remainingAmount), p.status === 'active' ? 'درجریان' : p.status === 'overdue' ? 'معوق' : 'تکمیل شده']),
+    totals: [{ label: 'جمع باقیمانده', value: AFN(plans.reduce((s, p) => s + p.remainingAmount, 0)) }],
+  });
 
   const pay = (planId: string, instId: string) => {
     const plan = plans.find((p) => p.id === planId);
@@ -50,7 +60,7 @@ export default function Installments() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div><h2 className="text-xl font-bold text-slate-900">مدیریت اقساط</h2><p className="text-sm text-slate-500">{plans.length} طرح · {txHistory.length} تراکنش</p></div>
-        <div className="flex gap-2"><button onClick={() => window.print()} className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">پرینت</button><button onClick={() => setShowForm(true)} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"><Plus size={18} /> طرح جدید</button></div>
+        <div className="flex gap-2"><button onClick={printInstallments} className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">پرینت</button><button onClick={() => setShowForm(true)} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"><Plus size={18} /> طرح جدید</button></div>
       </div>
 
       {showForm && (
@@ -76,7 +86,7 @@ export default function Installments() {
             <div key={plan.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex items-center justify-between">
                 <div><p className="text-xs text-slate-500">{plan.id}</p><p className="text-base font-bold text-slate-900">{plan.customerName}</p></div>
-                <div className="flex items-center gap-2"><span className={`rounded-full px-2.5 py-1 text-xs font-medium ${plan.status === 'active' ? 'bg-blue-50 text-blue-700' : plan.status === 'overdue' ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>{plan.status === 'active' ? 'درجریان' : plan.status === 'overdue' ? 'معوق' : 'تکمیل شده'}</span><RecordActions compact onEdit={() => editPlan(plan)} onDelete={() => deletePlan(plan.id)} onPrint={() => window.print()} /></div>
+                <div className="flex items-center gap-2"><span className={`rounded-full px-2.5 py-1 text-xs font-medium ${plan.status === 'active' ? 'bg-blue-50 text-blue-700' : plan.status === 'overdue' ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>{plan.status === 'active' ? 'درجریان' : plan.status === 'overdue' ? 'معوق' : 'تکمیل شده'}</span><RecordActions compact onEdit={() => editPlan(plan)} onDelete={() => deletePlan(plan.id)} onPrint={printInstallments} /></div>
               </div>
               <div className="mt-4 flex items-center justify-between rounded-xl bg-slate-50 p-3">
                 <div><p className="text-[11px] text-slate-500">کل مبلغ</p><p className="text-sm font-semibold text-slate-900">{AFN(plan.totalAmount)}</p></div>

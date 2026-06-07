@@ -3,6 +3,7 @@ import { AlertTriangle, CheckCircle, XCircle, Plus } from 'lucide-react';
 import { products } from '../data/mockData';
 import { dbLedger, AFN, persianDate } from '../db/database';
 import RecordActions from '../components/RecordActions';
+import { printMinimalDocument } from '../utils/printTemplates';
 
 export default function InventoryPage() {
   const [tab, setTab] = useState<'products' | 'movements'>('products');
@@ -18,6 +19,15 @@ export default function InventoryPage() {
     dbLedger.add({ date: persianDate(), type: dir === 'in' ? 'inventory_in' : 'inventory_out', status: 'confirmed', title: `${dir === 'in' ? 'ورود' : 'خروج'} کالا: ${prod.trim()}`, description: `تعداد: ${q}`, debit: dir === 'in' ? q * 1000 : 0, credit: dir === 'out' ? q * 1000 : 0, refType: 'inventory', refId: '', createdBy: 'کاربر' });
     setShowForm(false); setProd(''); setQty('');
   };
+
+  const printInventory = () => printMinimalDocument({
+    title: 'فاکتور / گزارش انبار',
+    subtitle: 'موجودی کالا',
+    party: 'انبار مرکزی',
+    headers: ['نام', 'SKU', 'دسته', 'موجودی', 'قیمت', 'وضعیت'],
+    rows: productList.map((p) => [p.name, p.sku, p.category, p.stock, `${(p.price / 1e6).toFixed(1)}M`, p.status === 'in_stock' ? 'موجود' : p.status === 'low_stock' ? 'کمبود' : 'ناموجود']),
+    totals: [{ label: 'تعداد اقلام', value: String(productList.length) }],
+  });
 
   const editProduct = (id: string) => {
     const current = productList.find((p) => p.id === id);
@@ -36,7 +46,7 @@ export default function InventoryPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div><h2 className="text-xl font-bold text-slate-900">انبارداری</h2><p className="text-sm text-slate-500">{txHistory.length} حرکت انبار ثبت شده</p></div>
-        <div className="flex gap-2"><button onClick={() => window.print()} className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">پرینت</button><button onClick={() => setShowForm(true)} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"><Plus size={16} /> ثبت حرکت</button></div>
+        <div className="flex gap-2"><button onClick={printInventory} className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">پرینت</button><button onClick={() => setShowForm(true)} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"><Plus size={16} /> ثبت حرکت</button></div>
       </div>
 
       {showForm && (
@@ -65,7 +75,7 @@ export default function InventoryPage() {
                 {productList.map((p) => {
                   const badge = p.status === 'in_stock' ? { text: 'موجود', cls: 'bg-emerald-100 text-emerald-700', icon: CheckCircle } : p.status === 'low_stock' ? { text: 'کمبود', cls: 'bg-amber-100 text-amber-700', icon: AlertTriangle } : { text: 'ناموجود', cls: 'bg-red-100 text-red-700', icon: XCircle };
                   const Icon = badge.icon;
-                  return (<tr key={p.id} className="hover:bg-slate-50/60"><td className="px-4 py-3 font-medium text-slate-900">{p.name}</td><td className="px-4 py-3 text-slate-600">{p.sku}</td><td className="px-4 py-3 text-slate-600">{p.category}</td><td className="px-4 py-3 font-semibold text-slate-900">{p.stock}</td><td className="px-4 py-3 text-slate-900">{(p.price / 1e6).toFixed(1)}M</td><td className="px-4 py-3"><span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${badge.cls}`}><Icon size={12} /> {badge.text}</span></td><td className="px-4 py-3 print:hidden"><RecordActions compact onEdit={() => editProduct(p.id)} onDelete={() => deleteProduct(p.id)} onPrint={() => window.print()} /></td></tr>);
+                  return (<tr key={p.id} className="hover:bg-slate-50/60"><td className="px-4 py-3 font-medium text-slate-900">{p.name}</td><td className="px-4 py-3 text-slate-600">{p.sku}</td><td className="px-4 py-3 text-slate-600">{p.category}</td><td className="px-4 py-3 font-semibold text-slate-900">{p.stock}</td><td className="px-4 py-3 text-slate-900">{(p.price / 1e6).toFixed(1)}M</td><td className="px-4 py-3"><span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${badge.cls}`}><Icon size={12} /> {badge.text}</span></td><td className="px-4 py-3 print:hidden"><RecordActions compact onEdit={() => editProduct(p.id)} onDelete={() => deleteProduct(p.id)} onPrint={printInventory} /></td></tr>);
                 })}
               </tbody>
             </table>

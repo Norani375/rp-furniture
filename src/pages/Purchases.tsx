@@ -3,6 +3,7 @@ import { CheckCircle, Plus } from 'lucide-react';
 import { suppliers } from '../data/mockData';
 import { dbLedger, AFN, persianDate } from '../db/database';
 import RecordActions from '../components/RecordActions';
+import { printMinimalDocument } from '../utils/printTemplates';
 
 export default function Purchases() {
   const [tab, setTab] = useState<'suppliers' | 'history'>('suppliers');
@@ -18,6 +19,15 @@ export default function Purchases() {
     dbLedger.add({ date: persianDate(), type: 'purchase', status: 'confirmed', title: `خرید از ${name.trim()}`, description: `مبلغ ${AFN(amt)}`, debit: 0, credit: amt, refType: 'supplier', refId: name.trim(), createdBy: 'کاربر' });
     setShowForm(false); setName(''); setAmount('');
   };
+
+  const printPurchases = () => printMinimalDocument({
+    title: 'فاکتور خرید و تامین‌کنندگان',
+    subtitle: 'مدیریت خرید',
+    party: 'واحد خرید',
+    headers: ['تامین‌کننده', 'دسته', 'امتیاز', 'سفارشات', 'وضعیت'],
+    rows: supplierList.map((s) => [s.name, s.category, s.rating, s.totalOrders, 'فعال']),
+    totals: [{ label: 'تعداد تامین‌کنندگان', value: String(supplierList.length) }],
+  });
 
   const editSupplier = (id: string) => {
     const current = supplierList.find((s) => s.id === id);
@@ -36,7 +46,7 @@ export default function Purchases() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div><h2 className="text-xl font-bold text-slate-900">مدیریت خرید</h2><p className="text-sm text-slate-500">{txHistory.length} خرید ثبت شده</p></div>
-        <div className="flex gap-2"><button onClick={() => window.print()} className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">پرینت</button><button onClick={() => setShowForm(true)} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"><Plus size={16} /> خرید جدید</button></div>
+        <div className="flex gap-2"><button onClick={printPurchases} className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">پرینت</button><button onClick={() => setShowForm(true)} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"><Plus size={16} /> خرید جدید</button></div>
       </div>
 
       {showForm && (
@@ -68,7 +78,7 @@ export default function Purchases() {
                     <td className="px-4 py-3"><div className="flex text-yellow-400">{Array.from({ length: 5 }).map((_, i) => <span key={i}>{i < Math.floor(s.rating) ? '★' : '☆'}</span>)}</div></td>
                     <td className="px-4 py-3 font-semibold text-slate-900">{s.totalOrders}</td>
                     <td className="px-4 py-3"><span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700"><CheckCircle size={12} /> فعال</span></td>
-                    <td className="px-4 py-3 print:hidden"><RecordActions compact onEdit={() => editSupplier(s.id)} onDelete={() => deleteSupplier(s.id)} onPrint={() => window.print()} /></td>
+                    <td className="px-4 py-3 print:hidden"><RecordActions compact onEdit={() => editSupplier(s.id)} onDelete={() => deleteSupplier(s.id)} onPrint={printPurchases} /></td>
                   </tr>
                 ))}
               </tbody>

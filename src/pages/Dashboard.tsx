@@ -2,10 +2,18 @@ import { useState, useEffect } from 'react';
 import { Package, Wallet, AlertTriangle, RefreshCw, Loader2 } from 'lucide-react';
 import { neonLedger, neonStats, testConnection } from '../db/neon';
 import { inventoryItems } from '../data/mockData';
-import { AFN } from '../db/database';
+import { AFN, dbReports } from '../db/database';
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({ inventoryCount: 0, inventoryValue: 0, transactionCount: 0, planCount: 0, receivable: 0 });
+  const [stats, setStats] = useState({ 
+    inventoryCount: 0, 
+    inventoryValue: 0, 
+    realInventoryValue: 0,
+    cogs: 0,
+    transactionCount: 0, 
+    planCount: 0, 
+    receivable: 0 
+  } as any);
   const [recentTx, setRecentTx] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
@@ -29,6 +37,8 @@ export default function Dashboard() {
         setStats({
           inventoryCount: inventoryItems.length,
           inventoryValue: inventoryItems.reduce((s, i) => s + i.quantity * i.unitPriceAFN, 0),
+          realInventoryValue: 0,
+          cogs: 0,
           transactionCount: 0,
           planCount: 2,
           receivable: 2000000,

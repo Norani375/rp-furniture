@@ -5,6 +5,7 @@ import { dbLedger, AFN, persianDate } from '../db/database';
 import InvoicePrint from '../components/InvoicePrint';
 import { Invoice } from '../types';
 import RecordActions from '../components/RecordActions';
+import { printMinimalDocument } from '../utils/printTemplates';
 
 export default function Sales() {
   const [tab, setTab] = useState<'customers' | 'invoices' | 'history'>('customers');
@@ -14,9 +15,16 @@ export default function Sales() {
 
   const handlePrint = (inv: Invoice) => {
     setPrintInvoice(inv);
-    setTimeout(() => {
-      window.print();
-    }, 100);
+    printMinimalDocument({
+      title: 'فاکتور فروش',
+      subtitle: inv.id,
+      documentNo: inv.id,
+      party: inv.customerName,
+      headers: ['شرح', 'تعداد', 'قیمت واحد', 'قیمت کل'],
+      rows: (inv.items?.length ? inv.items : [{ description: 'فروش کلی', quantity: 1, unitPrice: inv.amount }]).map((item) => [item.description, item.quantity, AFN(item.unitPrice), AFN(item.quantity * item.unitPrice)]),
+      totals: [{ label: 'مبلغ کل', value: AFN(inv.amount) }],
+      note: 'این فاکتور مینیمال توسط سیستم فروش صادر شده است.',
+    });
   };
 
   const txHistory = useMemo(() => dbLedger.getAll().filter((t) => t.type === 'sale'), []);

@@ -3,6 +3,7 @@ import { Banknote, Plus, Receipt } from 'lucide-react';
 import { AFN, dbBanking } from '../db/database';
 import { ChequeRecord } from '../types';
 import RecordActions from '../components/RecordActions';
+import { printMinimalDocument } from '../utils/printTemplates';
 
 export default function Banking() {
   const [, setRefresh] = useState(0);
@@ -21,6 +22,15 @@ export default function Banking() {
     dbBanking.addCheque(record);
     setShow(false); setChequeNo(''); setPartyName(''); setAmount(''); setRefresh((x) => x + 1);
   };
+
+  const printBanking = () => printMinimalDocument({
+    title: 'فاکتور / گزارش چک و بانک',
+    subtitle: 'چک‌های دریافتی و پرداختی',
+    party: 'صندوق و بانک',
+    headers: ['شماره چک', 'طرف حساب', 'نوع', 'مبلغ', 'سررسید', 'وضعیت'],
+    rows: cheques.map((c) => [c.chequeNo, c.partyName, c.type === 'received' ? 'دریافتی' : 'پرداختی', AFN(c.amount), c.dueDate, c.status === 'pending' ? 'در انتظار' : c.status]),
+    totals: [{ label: 'جمع چک‌ها', value: AFN(cheques.reduce((s, c) => s + c.amount, 0)) }],
+  });
 
   const editCheque = (id: string) => {
     const current = dbBanking.getCheques().find((c) => c.id === id);
@@ -42,7 +52,7 @@ export default function Banking() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div><h2 className="text-xl font-bold text-slate-900">چک و بانک</h2><p className="text-sm text-slate-500">مدیریت صندوق، حساب بانکی و چک‌ها</p></div>
-        <div className="flex gap-2"><button onClick={() => window.print()} className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">پرینت</button><button onClick={() => setShow(true)} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"><Plus size={16} /> ثبت چک</button></div>
+        <div className="flex gap-2"><button onClick={printBanking} className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">پرینت</button><button onClick={() => setShow(true)} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"><Plus size={16} /> ثبت چک</button></div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -73,7 +83,7 @@ export default function Banking() {
           <table className="w-full text-right text-sm">
             <thead><tr className="border-b bg-slate-50 text-xs text-slate-500"><th className="px-4 py-3">شماره</th><th className="px-4 py-3">طرف حساب</th><th className="px-4 py-3">نوع</th><th className="px-4 py-3">مبلغ</th><th className="px-4 py-3">سررسید</th><th className="px-4 py-3">وضعیت</th><th className="px-4 py-3 print:hidden">عملیات</th></tr></thead>
             <tbody className="divide-y divide-slate-100">
-              {cheques.map((c) => <tr key={c.id}><td className="px-4 py-3 font-medium text-indigo-700">{c.chequeNo}</td><td className="px-4 py-3">{c.partyName}</td><td className="px-4 py-3">{c.type === 'received' ? 'دریافتی' : 'پرداختی'}</td><td className={`px-4 py-3 font-bold ${c.type === 'received' ? 'text-emerald-600' : 'text-red-600'}`}>{AFN(c.amount)}</td><td className="px-4 py-3 text-slate-500">{c.dueDate}</td><td className="px-4 py-3"><span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">در انتظار</span></td><td className="px-4 py-3 print:hidden"><RecordActions compact onEdit={() => editCheque(c.id)} onDelete={() => deleteCheque(c.id)} onPrint={() => window.print()} /></td></tr>)}
+              {cheques.map((c) => <tr key={c.id}><td className="px-4 py-3 font-medium text-indigo-700">{c.chequeNo}</td><td className="px-4 py-3">{c.partyName}</td><td className="px-4 py-3">{c.type === 'received' ? 'دریافتی' : 'پرداختی'}</td><td className={`px-4 py-3 font-bold ${c.type === 'received' ? 'text-emerald-600' : 'text-red-600'}`}>{AFN(c.amount)}</td><td className="px-4 py-3 text-slate-500">{c.dueDate}</td><td className="px-4 py-3"><span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">در انتظار</span></td><td className="px-4 py-3 print:hidden"><RecordActions compact onEdit={() => editCheque(c.id)} onDelete={() => deleteCheque(c.id)} onPrint={printBanking} /></td></tr>)}
             </tbody>
           </table>
         </div>
