@@ -7,11 +7,10 @@
 import { neon } from '@neondatabase/serverless';
 import type { Transaction, InventoryItem, InstallmentPlan } from '../types';
 
-const NEON_URL = 'postgresql://neondb_owner:npg_3BDYyoPGWh6g@ep-plain-fire-aqjgfoax-pooler.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+const NEON_URL = import.meta.env.VITE_DATABASE_URL || '';
 
 let _sql: ReturnType<typeof neon> | null = null;
 function sql() {
-  if (!_sql) _sql = neon(NEON_URL);
   return _sql;
 }
 

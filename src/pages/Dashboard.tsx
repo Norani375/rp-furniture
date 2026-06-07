@@ -1,51 +1,95 @@
-import { useMemo } from 'react';
-import { Package, Wallet, Users, AlertTriangle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Package, Wallet, AlertTriangle, RefreshCw, Loader2 } from 'lucide-react';
+import { neonLedger, neonStats, testConnection } from '../db/neon';
 import { inventoryItems } from '../data/mockData';
-import { dbInstallments, dbLedger, AFN } from '../db/database';
+import { AFN } from '../db/database';
 
 export default function Dashboard() {
-  const plans = dbInstallments.getAll();
-  const ledger = dbLedger.getAll();
+  const [stats, setStats] = useState({ inventoryCount: 0, inventoryValue: 0, transactionCount: 0, planCount: 0, receivable: 0 });
+  const [recentTx, setRecentTx] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [connected, setConnected] = useState(false);
 
-  const stats = useMemo(() => {
-    const totalValue = inventoryItems.reduce((s, i) => s + i.quantity * i.unitPriceAFN, 0);
-    const totalPlans = plans.length;
-    const activePlans = plans.filter((p) => p.status === 'active').length;
-    const overduePlans = plans.filter((p) => p.status === 'overdue').length;
-    const receivable = plans.reduce((s, p) => s + p.remainingAmount, 0);
-    const totalDebit = ledger.reduce((s, t) => s + t.debit, 0);
-    const totalCredit = ledger.reduce((s, t) => s + t.credit, 0);
-    const today = ledger.filter((t) => t.date === new Date().toISOString().slice(0, 10));
-    return { totalValue, totalPlans, activePlans, overduePlans, receivable, totalDebit, totalCredit, netBalance: totalDebit - totalCredit, todayCount: today.length };
-  }, [plans, ledger]);
+  useEffect(() => {
+    loadLiveData();
+  }, []);
+
+  const loadLiveData = async () => {
+    setLoading(true);
+    try {
+      const conn = await testConnection();
+      if (conn.ok) {
+        setConnected(true);
+        const s = await neonStats();
+        setStats(s);
+        const txs = await neonLedger.getAll();
+        setRecentTx(txs.slice(0, 8));
+      } else {
+        setConnected(false);
+        setStats({
+          inventoryCount: inventoryItems.length,
+          inventoryValue: inventoryItems.reduce((s, i) => s + i.quantity * i.unitPriceAFN, 0),
+          transactionCount: 0,
+          planCount: 2,
+          receivable: 2000000,
+        });
+      }
+    } catch {
+      setConnected(false);
+    }
+    setLoading(false);
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-slate-900">داشبورد مدیریت یکپارچه</h2>
-          <p className="text-sm text-slate-500">خلاصه کل سیستم — {ledger.length} تراکنش ثبت شده</p>
+          <p className="text-sm text-slate-500">خلاصه کل سیستم از Neon PostgreSQL</p>
         </div>
-        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2">
-          <span className="text-xs text-slate-500">مانده کل:</span>
-          <span className={`text-sm font-bold ${stats.netBalance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-            {AFN(stats.netBalance)}
+        <div className="flex items-center gap-2">
+          <span className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${connected ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+            <span className={`h-2 w-2 rounded-full ${connected ? 'bg-emerald-500' : 'bg-red-500'} ${loading ? 'animate-pulse' : ''}`} />
+            {connected ? 'Neon متصل' : 'آفلاین'}
           </span>
+          <button onClick={loadLiveData} className="rounded-xl border border-slate-300 bg-white p-2 text-slate-600 hover:bg-slate-50" title="بروزرسانی">
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+          </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={Package} label="کل اجناس" value={String(inventoryItems.length)} sub="قلم کالا" color="bg-indigo-100 text-indigo-700" />
-        <StatCard icon={Wallet} label="ارزش موجودی" value={AFN(stats.totalValue)} sub="افغانی" color="bg-emerald-100 text-emerald-700" />
-        <StatCard icon={Users} label="طرح‌های قسطی" value={String(stats.totalPlans)} sub={`${stats.activePlans} فعال · ${stats.overduePlans} معوق`} color="bg-blue-100 text-blue-700" />
-        <StatCard icon={AlertTriangle} label="مطالبات معوق" value={AFN(stats.receivable)} sub="باقیمانده قسط‌ها" color="bg-red-100 text-red-700" />
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700"><Package size={20} /></div>
+            <div><p className="text-xs text-slate-500">کل اجناس</p><p className="text-lg font-bold text-slate-900">{stats.inventoryCount}</p></div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700"><Wallet size={20} /></div>
+            <div><p className="text-xs text-slate-500">ارزش موجودی</p><p className="text-lg font-bold text-slate-900">{AFN(stats.inventoryValue)}</p></div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-700"><FileIcon size={20} /></div>
+            <div><p className="text-xs text-slate-500">تراکنش‌ها</p><p className="text-lg font-bold text-slate-900">{stats.transactionCount}</p></div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-100 text-red-700"><AlertTriangle size={20} /></div>
+            <div><p className="text-xs text-slate-500">مطالبات معوق</p><p className="text-lg font-bold text-red-600">{AFN(stats.receivable)}</p></div>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-900 mb-3">آخرین تراکنش‌ها</h3>
+      {recentTx.length > 0 && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h3 className="text-sm font-bold text-slate-900 mb-3">آخرین تراکنش‌ها از Neon</h3>
           <div className="space-y-2">
-            {ledger.slice(-8).reverse().map((tx) => (
+            {recentTx.map((tx) => (
               <div key={tx.id} className="flex items-center justify-between rounded-xl border border-slate-100 px-4 py-2.5">
                 <div className="flex items-center gap-3">
                   <span className={`h-2 w-2 rounded-full ${tx.debit > 0 ? 'bg-emerald-500' : 'bg-red-500'}`} />
@@ -61,39 +105,21 @@ export default function Dashboard() {
             ))}
           </div>
         </div>
+      )}
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-900 mb-3">خلاصه اقساط</h3>
-          <div className="space-y-2">
-            {plans.map((plan) => (
-              <div key={plan.id} className="rounded-xl border border-slate-100 px-4 py-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-slate-900">{plan.customerName}</p>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${plan.status === 'active' ? 'bg-blue-50 text-blue-700' : plan.status === 'overdue' ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>
-                    {plan.status === 'active' ? 'درجریان' : plan.status === 'overdue' ? 'معوق' : 'تکمیل'}
-                  </span>
-                </div>
-                <div className="mt-1 flex items-center justify-between text-xs">
-                  <span className="text-slate-500">{plan.installments.filter((i) => i.paid).length}/{plan.installments.length} قسط</span>
-                  <span className="font-bold text-red-600">{AFN(plan.remainingAmount)}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+      {recentTx.length === 0 && !loading && (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
+          <p className="text-slate-500">داده‌ای از Neon یافت نشد. ابتدا دیتابیس را راه‌اندازی کنید.</p>
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
-function StatCard({ icon: Icon, label, value, sub, color }: any) {
+function FileIcon({ size }: { size: number }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-center gap-3">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${color}`}><Icon size={20} /></div>
-        <div><p className="text-xs text-slate-500">{label}</p><p className="text-lg font-bold text-slate-900">{value}</p></div>
-      </div>
-      <p className="mt-2 text-xs text-slate-400">{sub}</p>
-    </div>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+    </svg>
   );
 }
