@@ -3,6 +3,7 @@ import {
   Users, Users2, Wallet, FileText, Settings, ChevronRight,
   Database, LogOut, ChevronLeft, Factory, Banknote, Bell, Shield, Store,
 } from 'lucide-react';
+import { authService } from '../services/securityService';
 
 interface Props {
   active: string;
@@ -50,6 +51,8 @@ const menuGroups = [
     label: 'گزارشات',
     items: [
       { id: 'reports', label: 'گزارش‌گیری', icon: FileText },
+      { id: 'audit', label: 'رخدادها (Audit)', icon: Shield },
+      { id: 'backup', label: 'پشتیبان', icon: Database },
       { id: 'notifications', label: 'هشدارها', icon: Bell },
       { id: 'access', label: 'سطوح دسترسی', icon: Shield },
       { id: 'settings', label: 'تنظیمات', icon: Settings },
@@ -148,10 +151,7 @@ export default function Sidebar({ active, onNavigate, collapsed, onToggle }: Pro
           {!collapsed && <span>ریست دیتابیس</span>}
         </button>
         <button
-          onClick={() => {
-            localStorage.removeItem('erp_auth_token');
-            window.location.reload();
-          }}
+          onClick={() => { authService.logout(); }}
           className={`mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-500 hover:bg-slate-50 transition-colors ${collapsed ? 'justify-center' : ''}`}
           title={collapsed ? 'خروج' : undefined}
         >

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Lock, User } from 'lucide-react';
+import { authService } from '../services/securityService';
 
 interface LoginProps {
   onSuccess: () => void;
@@ -12,17 +13,8 @@ export default function Login({ onSuccess }: LoginProps) {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const users = [
-      { username: 'admin', password: '123456', role: 'admin', name: 'مدیر سیستم' },
-      { username: 'accountant', password: '123456', role: 'accountant', name: 'حسابدار' },
-      { username: 'sales', password: '123456', role: 'sales', name: 'فروشنده' },
-      { username: 'inventory', password: '123456', role: 'inventory', name: 'انباردار' },
-    ];
-    const user = users.find((u) => u.username === username && u.password === password);
-    if (user) {
-      localStorage.setItem('erp_auth_token', 'logged_in');
-      localStorage.setItem('erp_user_role', user.role);
-      localStorage.setItem('erp_user_name', user.name);
+    const session = authService.login(username, password);
+    if (session) {
       onSuccess();
     } else {
       setError('نام کاربری یا رمز عبور اشتباه است.');

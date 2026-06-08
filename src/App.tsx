@@ -19,6 +19,8 @@ import Banking from './pages/Banking';
 import Pos from './pages/Pos';
 import NotificationsPage from './pages/NotificationsPage';
 import AccessControl from './pages/AccessControl';
+import AuditPage from './pages/AuditPage';
+import BackupPage from './pages/BackupPage';
 import { testConnection } from './db/neon';
 import { Bell, Database, ShieldAlert } from 'lucide-react';
 import { dbNotifications } from './db/database';
@@ -43,13 +45,15 @@ const pages: Record<string, React.ComponentType> = {
   pos: Pos,
   notifications: NotificationsPage,
   access: AccessControl,
+  audit: AuditPage,
+  backup: BackupPage,
 };
 
 const pageTitles: Record<string, string> = {
   dashboard: 'داشبورد', catalog: 'کاتالوگ اجناس', currencies: 'ارزها', installments: 'اقساط',
   accounting: 'حسابداری', sales: 'فروش', purchases: 'خرید', inventory: 'انبارداری',
   crm: 'CRM', payroll: 'حقوق و دستمزد', tax: 'مالیات', reports: 'گزارش‌گیری', settings: 'تنظیمات',
-  manufacturing: 'تولید و مونتاژ', banking: 'چک و بانک', pos: 'فروش سریع POS', notifications: 'هشدارها', access: 'سطوح دسترسی',
+  manufacturing: 'تولید و مونتاژ', banking: 'چک و بانک', pos: 'فروش سریع POS', notifications: 'هشدارها', access: 'سطوح دسترسی', audit: 'گزارش رخدادها', backup: 'پشتیبان',
 };
 
 const roleAccess: Record<UserRole, string[]> = {

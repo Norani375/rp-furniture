@@ -7,10 +7,16 @@
 import { neon } from '@neondatabase/serverless';
 import type { Transaction, InventoryItem, InstallmentPlan } from '../types';
 
+// ⚠️ SECURITY: In production, this module is used ONLY for local development.
+// In deployed environment, set VITE_FORCE_LOCAL=true and all data goes through localStorage.
+// For secure deployment, use server/index.js as backend proxy — credentials stay server-side only.
 const NEON_URL = import.meta.env.VITE_DATABASE_URL || '';
+// SECURITY: When this flag is true, Neon functions return empty data and no credentials are exposed
+const FORCE_LOCAL = import.meta.env.VITE_FORCE_LOCAL === 'true';
 
 let _sql: ReturnType<typeof neon> | null = null;
 function sql() {
+  if (FORCE_LOCAL) throw new Error('Neon disabled by VITE_FORCE_LOCAL');
   if (!_sql) {
     if (!NEON_URL) throw new Error('Database URL not configured');
     _sql = neon(NEON_URL);
