@@ -24,33 +24,37 @@ export default function Dashboard() {
   }, []);
 
   const loadLiveData = async () => {
-    setLoading(true);
+    // 1. فوراً از localStorage بخوان (بدون انتظار)
+    const report = getPreciseReport();
+    const localTx = dbLedger.getAll();
+    const localPlans = dbInstallments.getAll();
+    setStats({
+      inventoryCount: inventoryItems.length,
+      inventoryValue: report.inventoryValue,
+      realInventoryValue: report.inventoryValue,
+      cogs: report.cogs,
+      transactionCount: localTx.length,
+      planCount: localPlans.length,
+      receivable: localPlans.reduce((s: number, p: any) => s + p.remainingAmount, 0),
+    });
+    setRecentTx(localTx.slice(-8).reverse());
+    setLoading(false);
+
+    // 2. در پس‌زمینه Backend را چک کن (بدون بلاک کردن UI)
     try {
       const conn = await testConnection();
       if (conn.ok) {
         setConnected(true);
         const s = await neonStats();
-        setStats(s);
+        setStats({ ...s, realInventoryValue: s.inventoryValue, cogs: 0 });
         const txs = await neonLedger.getAll();
-        setRecentTx(txs.slice(0, 8));
+        if (txs.length > 0) setRecentTx(txs.slice(0, 8));
       } else {
         setConnected(false);
-        const report = getPreciseReport();
-        const localTx = dbLedger.getAll();
-        const localPlans = dbInstallments.getAll();
-        setStats({
-          inventoryCount: inventoryItems.length,
-          inventoryValue: report.inventoryValue,
-          transactionCount: localTx.length,
-          planCount: localPlans.length,
-          receivable: localPlans.reduce((s: number, p: any) => s + p.remainingAmount, 0),
-        });
-        setRecentTx(localTx.slice(-8).reverse());
       }
     } catch {
       setConnected(false);
     }
-    setLoading(false);
   };
 
   return (

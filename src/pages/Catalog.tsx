@@ -46,10 +46,12 @@ export default function Catalog() {
     if (!name.trim() || q <= 0 || p <= 0) return;
     if (editing) {
       dbInventory.update(editing.id, { name: name.trim(), unit, quantity: q, unitPriceAFN: p });
-      await neonInventory.update(editing.id, { name: name.trim(), unit, quantity: q, unitPriceAFN: p });
+      // در پس‌زمینه Neon را به‌روزرسانی کن (بدون بلاک کردن)
+      neonInventory.update(editing.id, { name: name.trim(), unit, quantity: q, unitPriceAFN: p }).catch(() => {});
     } else {
       dbInventory.add({ id: 0, name: name.trim(), unit, quantity: q, unitPriceAFN: p });
-      await neonInventory.add({ name: name.trim(), unit, quantity: q, unitPriceAFN: p, category: 'عمومی' });
+      // در پس‌زمینه Neon را به‌روزرسانی کن (بدون بلاک کردن)
+      neonInventory.add({ name: name.trim(), unit, quantity: q, unitPriceAFN: p, category: 'عمومی' }).catch(() => {});
       dbLedger.add({ date: persianDate(), type: 'inventory_in', status: 'confirmed', title: `ورود کالا: ${name.trim()}`, description: `${q} ${unit} — ${AFN(p * q)}`, debit: p * q, credit: 0, refType: 'inventory', refId: '', createdBy: 'کاربر' });
     }
     setItems(dbInventory.getAll()); setShowForm(false); resetForm();
@@ -59,7 +61,8 @@ export default function Catalog() {
     if (!confirm('آیا از حذف این کالا مطمئن هستید؟')) return;
     const item = items.find((i) => i.id === id);
     dbInventory.remove(id);
-    await neonInventory.remove(id);
+    // در پس‌زمینه از Neon حذف کن (بدون بلاک کردن)
+    neonInventory.remove(id).catch(() => {});
     if (item) {
       dbLedger.add({ date: persianDate(), type: 'inventory_out', status: 'confirmed', title: `حذف کالا: ${item.name}`, description: `${item.quantity} ${item.unit}`, debit: 0, credit: item.unitPriceAFN * item.quantity, refType: 'inventory', refId: String(id), createdBy: 'کاربر' });
     }

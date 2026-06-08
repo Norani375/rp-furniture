@@ -54,7 +54,8 @@ export default function Installments() {
 
   const deletePlan = async (planId: string) => {
     if (!confirm('آیا از حذف این طرح قسطی مطمئن هستید؟')) return;
-    await neonInstallments.remove(planId);
+    // در پس‌زمینه از Neon حذف کن (بدون بلاک کردن)
+    neonInstallments.remove(planId).catch(() => {});
     setPlans(dbInstallments.remove(planId));
   };
 

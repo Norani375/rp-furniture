@@ -20,7 +20,12 @@ export default function Accounting() {
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
-    setLoading(true);
+    // 1. فوراً از localStorage بخوان (بدون انتظار)
+    setLedger(dbLedger.getAll());
+    setDataSource('local');
+    setLoading(false);
+
+    // 2. در پس‌زمینه Backend را چک کن (بدون بلاک کردن UI)
     try {
       const conn = await testConnection();
       if (conn.ok) {
@@ -29,15 +34,9 @@ export default function Accounting() {
           setLedger(data);
           setDataSource('neon');
           localStorage.setItem('erp_ledger_cache', JSON.stringify(data));
-          setLoading(false);
-          return;
         }
       }
     } catch {}
-    // fallback
-    setLedger(dbLedger.getAll());
-    setDataSource('local');
-    setLoading(false);
   };
 
   useEffect(() => { loadData(); }, []);

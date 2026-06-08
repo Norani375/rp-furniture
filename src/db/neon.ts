@@ -19,7 +19,10 @@ function authHeaders() {
 
 async function api<T>(path: string, init?: RequestInit): Promise<T | null> {
   try {
-    const res = await fetch(`${API_BASE}${path}`, { ...init, headers: { ...authHeaders(), ...(init?.headers || {}) } });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+    const res = await fetch(`${API_BASE}${path}`, { ...init, headers: { ...authHeaders(), ...(init?.headers || {}) }, signal: controller.signal });
+    clearTimeout(timeoutId);
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
