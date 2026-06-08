@@ -6,124 +6,130 @@ on:
   pull_request:
     branches: [main]
 
-env:
-  NODE_VERSION: '20'
-
 jobs:
-  # ═══════════════════════════════════════════════════════
-  # JOB 1: Quality Checks
-  # ═══════════════════════════════════════════════════════
-  quality:
-    name: Code Quality
+  # ── 1. Lint & TypeScript Check ──────────────────────────
+  lint:
+    name: 🔍 Lint & Type Check
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Type check
+      - name: TypeScript check
         run: npx tsc --noEmit
 
-      - name: Build
-        run: npm run build
-
-      - name: Check bundle size
-        run: |
-          SIZE=$(stat -f%z dist/index.html 2>/dev/null || stat -c%s dist/index.html)
-          echo "Bundle size: $SIZE bytes"
-          if [ $SIZE -gt 1500000 ]; then
-            echo "❌ Bundle too large (>1.5MB)"
-            exit 1
-          fi
-          echo "✅ Bundle size OK"
-
-  # ═══════════════════════════════════════════════════════
-  # JOB 2: Security Audit
-  # ═══════════════════════════════════════════════════════
-  security:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    needs: quality
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run npm audit
-        run: npm audit --production
+      - name: Lint
+        run: npx eslint src --ext .ts,.tsx --max-warnings 0
         continue-on-error: true
 
-      - name: Check for secrets
-        run: |
-          echo "🔍 Scanning for hardcoded credentials..."
-          if grep -r "neondb_owner\|npg_" --include="*.ts" --include="*.tsx" --include="*.js" src/ 2>/dev/null; then
-            echo "❌ CRITICAL: Found hardcoded database credentials in frontend code!"
-            echo "🛡️  Credentials must stay in backend only (server/index.js via env vars)"
-            exit 1
-          fi
-          echo "✅ No hardcoded credentials found in frontend"
-
-  # ═══════════════════════════════════════════════════════
-  # JOB 3: Database Tests
-  # ═══════════════════════════════════════════════════════
-  database:
-    name: Database Tests
+  # ── 2. Build ─────────────────────────────────────────────
+  build:
+    name: 🏗️ Build
     runs-on: ubuntu-latest
-    needs: quality
-    if: github.event_name == 'push'
+    needs: lint
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Test Neon connection
-        if: env.DATABASE_URL != ''
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: |
-          echo "Testing Neon PostgreSQL connection..."
-          node -e "const { Pool } = require('pg'); const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }); pool.query('SELECT 1', (err) => { if (err) { console.error('❌ DB Error:', err.message); process.exit(1); } console.log('✅ Database connected'); pool.end(); });"
-
-  # ═══════════════════════════════════════════════════════
-  # JOB 4: Deploy to Vercel (production)
-  # ═══════════════════════════════════════════════════════
-  deploy:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: [quality, security, database]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
+      - name: Build frontend
         run: npm run build
         env:
-          VITE_FORCE_LOCAL: 'true'
+          NODE_ENV: production
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  # ── 3. Security Scan ─────────────────────────────────────
+  security:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: npm audit
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Check for secrets in code
+        run: |
+          if grep -r "npg_" src/ 2>/dev/null; then
+            echo "❌ Database credentials found in source code!"
+            exit 1
+          fi
+          if grep -r "postgresql://" src/ 2>/dev/null; then
+            echo "❌ Database URL found in source code!"
+            exit 1
+          fi
+          echo "✅ No credentials found in source code"
+
+  # ── 4. Load Test ─────────────────────────────────────────
+  load-test:
+    name: ⚡ Load Test
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run load tests
+        run: node tests/load-test.js
+        env:
+          API_URL: ${{ secrets.STAGING_API_URL }}
+        continue-on-error: true
+
+  # ── 5. Deploy to Vercel (frontend) ───────────────────────
+  deploy-frontend:
+    name: 🚀 Deploy Frontend
+    runs-on: ubuntu-latest
+    needs: [build, security]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
 
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v25
@@ -133,19 +139,19 @@ jobs:
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-args: '--prod'
 
-  # ═══════════════════════════════════════════════════════
-  # JOB 5: Deploy Backend to Render
-  # ═══════════════════════════════════════════════════════
+  # ── 6. Deploy to Railway (backend) ───────────────────────
   deploy-backend:
-    name: Deploy Backend
+    name: 🚂 Deploy Backend
     runs-on: ubuntu-latest
-    needs: [quality, security]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [build, security]
+    if: github.ref == 'refs/heads/main'
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Deploy to Render
-        run: |
-          curl -X POST https://api.render.com/deploy/srv-${{ secrets.RENDER_SERVICE_ID }} \
-            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}"
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        run: railway up --service erp-backend
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

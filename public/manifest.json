@@ -1,0 +1,85 @@
+{
+  "name": "ERP System - Enterprise Edition",
+  "short_name": "ERP",
+  "description": "سیستم مدیریت منابع سازمانی با استانداردهای بین‌المللی",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#4f46e5",
+  "orientation": "any",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "shortcuts": [
+    {
+      "name": "داشبورد",
+      "short_name": "داشبورد",
+      "description": "مشاهده داشبورد",
+      "url": "/?page=dashboard",
+      "icons": [{"src": "/icons/dashboard.png", "sizes": "96x96"}]
+    },
+    {
+      "name": "فروش",
+      "short_name": "فروش",
+      "description": "مدیریت فروش",
+      "url": "/?page=sales",
+      "icons": [{"src": "/icons/sales.png", "sizes": "96x96"}]
+    },
+    {
+      "name": "انبار",
+      "short_name": "انبار",
+      "description": "مدیریت انبار",
+      "url": "/?page=catalog",
+      "icons": [{"src": "/icons/inventory.png", "sizes": "96x96"}]
+    }
+  ]
+}

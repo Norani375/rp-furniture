@@ -128,10 +128,15 @@ CREATE TABLE IF NOT EXISTS installment_plans (
   installment_count INTEGER NOT NULL,
   start_date DATE NOT NULL DEFAULT CURRENT_DATE,
   end_date DATE,
+  due_date DATE,
   status VARCHAR(20) DEFAULT 'active',
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Compatibility fix for databases created with older schema
+ALTER TABLE installment_plans ADD COLUMN IF NOT EXISTS due_date DATE;
+UPDATE installment_plans SET due_date = end_date WHERE due_date IS NULL AND end_date IS NOT NULL;
 
 -- ============================================
 -- 10. INSTALLMENTS

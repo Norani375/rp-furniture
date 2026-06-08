@@ -1,176 +1,167 @@
-# راهنمای راه‌اندازی سیستم ERP
+# 🏢 سیستم ERP کامل - Enterprise Resource Planning
 
-## وضعیت فعلی سیستم
+سیستم مدیریت یکپارچه کسب‌وکار با دیتابیس واقعی **Neon PostgreSQL**
 
-✅ **سیستم کامل و آماده استفاده است**
+## ✨ ویژگی‌ها
 
-سیستم شما در حال حاضر در حالت **Hybrid** کار می‌کند:
-- **localStorage** به عنوان Single Source of Truth (همیشه کار می‌کند)
-- **Neon PostgreSQL** به عنوان گزینه اختیاری برای همگام‌سازی (اگر وصل باشد)
-- **Backend API** برای امنیت credentials (اگر اجرا شود)
+- 📊 **داشبورد هوشمند**: آمار لحظه‌ای، نمودارها، گزارشات
+- 📦 **انبار**: مدیریت ۶۵+ کالا با قیمت افغانی
+- 🛒 **فروش و خرید**: ثبت فاکتور، مشتری، تامین‌کننده
+- 💰 **اقساط**: طرح‌های قسطی، پیگیری پرداخت‌ها
+- 💱 **چند ارزی**: AFN (پایه) + USD, EUR, PKR, IRR, CNY
+- 👥 **کارکنان**: حقوق، دستمزد، پرسنل
+- 📈 **گزارشات**: نمودار درآمد، هزینه، توزیع فروش
+- 📋 **تاریخچه**: ثبت تمام فعالیت‌های سیستم
 
----
+## 🗄️ دیتابیس Neon (رایگان)
 
-## راه‌اندازی سریع (بدون Backend)
+### مزایای Neon:
+- ✅ ۱۰ گیگابایت فضای ذخیره‌سازی رایگان
+- ✅ ۱۰۰ ساعت محاسبات ماهانه
+- ✅ Branching & Point-in-time restore
+- ✅ Auto-scaling serverless
+- ✅ PostgreSQL کامل
 
-اگر فقط می‌خواهید سیستم کار کند:
+### ساختار جداول:
+```
+✅ users              - کاربران و احراز هویت
+✅ currencies         - ارزها و نرخ تبدیل
+✅ inventory_items    - ۶۵ قلم کالا
+✅ categories         - دسته‌بندی محصولات
+✅ customers          - مشتریان
+✅ suppliers          - تامین‌کنندگان
+✅ sales_invoices     - فاکتورهای فروش
+✅ purchase_orders    - سفارشات خرید
+✅ installment_plans  - طرح‌های اقساط
+✅ installments       - اقساط فردی
+✅ accounts           - حساب‌های حسابداری
+✅ journal_entries    - سندهای حسابداری
+✅ employees          - کارکنان
+✅ payroll_records    - حقوق و دستمزد
+✅ activity_log       - تاریخچه فعالیت
+```
 
+## 🚀 راه‌اندازی
+
+### پیش‌نیازها:
+- Node.js 18+
+- حساب Neon (رایگان)
+
+### ۱. کلون کردن
 ```bash
-npm run dev
+git clone <repo-url>
+cd erp-system
+npm install
 ```
 
-سپس مرورگر را باز کنید: `http://localhost:5173`
+### ۲. تنظیم دیتابیس
+1. به [neon.tech](https://neon.tech) بروید
+2. حساب بسازید (رایگان)
+3. پروژه جدید: `erp-system`
+4. Connection string را کپی کنید
 
-**اطلاعات ورود:**
-- **Admin:** `admin` / `123456`
-- **Accountant:** `accountant` / `123456`
-- **Sales:** `sales` / `123456`
-- **Inventory:** `inventory` / `123456`
+### ۳. فایل `.env` بسازید
+```bash
+cp .env.example .env
+```
 
----
-
-## راه‌اندازی با Backend (توصیه شده)
-
-### مرحله 1: تنظیم Neon
-
-1. به [Neon Console](https://console.neon.tech) بروید
-2. یک پروژه جدید بسازید
-3. Connection String را کپی کنید
-
-### مرحله 2: تنظیم Backend
-
-فایل `.env` را در root پروژه بسازید:
-
-```env
-DATABASE_URL=postgresql://user:password@host/dbname?sslmode=require
+مقدار `DATABASE_URL` را با connection string خود جایگزین کنید:
+```
+DATABASE_URL=postgresql://neondb_owner:YOUR_PASSWORD@ep-xxx.neon.tech/neondb?sslmode=require
 PORT=3001
-ADMIN_PASSWORD=123456
 ```
 
-### مرحله 3: اجرای Backend
+### ۴. اجرای SQL
+در Neon Dashboard:
+- SQL Editor را باز کنید
+- محتوای `database/neon_setup.sql` را اجرا کنید
 
+### ۵. اجرای Backend
 ```bash
 node server/index.js
 ```
 
-اگر درست باشد، باید ببینید:
+خروجی باید این باشد:
 ```
+🚀 ERP Backend running on http://localhost:3001
 ✅ Connected to Neon PostgreSQL
-🚀 ERP Backend port 3001
 ```
 
-### مرحله 4: اجرای Frontend
-
-در ترمینال دوم:
-
+### ۶. اجرای Frontend
 ```bash
 npm run dev
 ```
 
----
+باز کنید: http://localhost:5173
 
-## نحوه کار سیستم
+## 🔐 اطلاعات ورود پیش‌فرض
 
-### 1. خواندن داده‌ها
-- **همیشه** اول از localStorage خوانده می‌شود (سریع)
-- در پس‌زمینه، اگر Backend وصل باشد، داده‌های جدید گرفته می‌شود
-- کاربر منتظر نمی‌ماند
-
-### 2. نوشتن داده‌ها
-- **همیشه** اول در localStorage نوشته می‌شود (سریع)
-- در پس‌زمینه، اگر Backend وصل باشد، همگام‌سازی می‌شود
-- اگر Backend نباشد، داده فقط در localStorage می‌ماند
-
-### 3. حذف داده‌ها
-- **همیشه** اول از localStorage حذف می‌شود
-- در پس‌زمینه، اگر Backend وصل باشد، از Neon هم حذف می‌شود
-- اگر Backend نباشد، فقط از localStorage حذف می‌شود
-
----
-
-## همگام‌سازی با Neon
-
-اگر می‌خواهید داده‌های localStorage را به Neon منتقل کنید:
-
-1. به **تنظیمات** بروید
-2. روی **"همگام‌سازی به Neon"** کلیک کنید
-3. صبر کنید تا کامل شود
-
----
-
-## پشتیبان‌گیری
-
-### پشتیبان محلی
-1. به **پشتیبان** بروید
-2. روی **"دانلود پشتیبان"** کلیک کنید
-3. فایل JSON ذخیره می‌شود
-
-### بازیابی
-1. به **پشتیبان** بروید
-2. روی **"بازیابی پشتیبان"** کلیک کنید
-3. فایل JSON را انتخاب کنید
-
----
-
-## ویژگی‌های امنیتی
-
-- ✅ رمز عبور فقط در Backend ذخیره می‌شود
-- ✅ Frontend هرگز credentials دیتابیس را نمی‌بیند
-- ✅ تمام درخواست‌ها از Backend عبور می‌کنند
-- ✅ Audit Log تمام عملیات را ثبت می‌کند
-- ✅ Soft Delete برای بازیابی داده‌ها
-- ✅ نقش‌های کاربری (Admin, Accountant, Sales, Inventory)
-
----
-
-## گزارش‌های مالی استاندارد
-
-- ✅ صورت سود و زیان (IFRS/GAAP)
-- ✅ ترازنامه خلاصه
-- ✅ جریان نقدی
-- ✅ گزارش مالیاتی
-- ✅ گزارش COGS (Cost of Goods Sold)
-
----
-
-## تست بار (Load Testing)
-
-```bash
-node test/load-test.js
+```
+Email: admin@erp.com
+Password: admin123
 ```
 
----
+**⚠️ پس از اولین ورود رمز را تغییر دهید!**
 
-## استقرار (Deployment)
+## 📱 استفاده
+
+### داشبورد
+- آمار کلی: تعداد کالا، ارزش انبار، اقساط فعال، مطالبات
+- نمودار درآمد و هزینه (۶ ماه اخیر)
+- آخرین فعالیت‌های سیستم
+
+### انبار
+- لیست ۶۵+ کالا با قیمت افغانی
+- افزودن، ویرایش، حذف کالا
+- جستجوی زنده
+- نمایش موجودی و ارزش
+
+### اقساط
+- طرح‌های قسطی فعال/معوق/تکمیل
+- پرداخت اقساط با یک کلیک
+- محاسبه خودکار باقیمانده
+
+### گزارشات
+- نمودار درآمد/هزینه
+- توزیع فروش بر اساس دسته
+- تاریخچه ۳۰ روز اخیر
+- خروجی اکسل و PDF
+
+## 🌐 Deploy
 
 ### Frontend (Vercel)
 ```bash
-git push origin main
+npm install -g vercel
+vercel --prod
 ```
 
-### Backend (Render)
-1. به [Render](https://render.com) بروید
-2. یک Web Service جدید بسازید
-3. Repository را وصل کنید
-4. Environment Variables را تنظیم کنید:
-   - `DATABASE_URL`
-   - `ADMIN_PASSWORD`
+### Backend (Railway / Vercel)
+1. Repository را به Railway متصل کنید
+2. متغیر `DATABASE_URL` را تنظیم کنید
+3. Deploy خودکار
+
+### دیتابیس (Neon)
+- رایگان تا ۱۰GB
+- Auto-backup روزانه
+- Scaling خودکار
+
+## 🛠️ تکنولوژی‌ها
+
+- **Frontend**: React 19, TypeScript, Tailwind CSS, Recharts
+- **Backend**: Node.js, Express, pg (PostgreSQL client)
+- **Database**: Neon (PostgreSQL 16)
+- **Charts**: Recharts (نمودارهای تعاملی)
+- **Icons**: Lucide React
+
+## 📞 پشتیبانی
+
+- مستندات Neon: https://neon.tech/docs
+- GitHub Issues: [Project Issues](https://github.com/your-repo/issues)
+
+## 📝 لایسنس
+
+MIT License - استفاده تجاری مجاز
 
 ---
 
-## پشتیبانی
-
-برای مشکلات:
-1. لاگ‌های Backend را چک کنید
-2. لاگ‌های مرورگر (F12 → Console) را چک کنید
-3. وضعیت Backend را در داشبورد چک کنید
-
----
-
-## نسخه
-
-**ERP System v1.0**
-- ۱۸ ماژول کامل
-- استانداردهای بین‌المللی (ISO 27001, IFRS, GDPR)
-- پشتیبانی آفلاین کامل
-- PWA (نصب روی موبایل)
+ساخته شده با ❤️ برای کسب‌وکارهای افغانی

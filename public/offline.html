@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#4f46e5">
+  <title>آفلاین - سیستم ERP</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Vazirmatn', 'Tahoma', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+    .container {
+      text-align: center;
+      padding: 2rem;
+      max-width: 500px;
+    }
+    .icon {
+      font-size: 80px;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+    p {
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+      opacity: 0.9;
+    }
+    .btn {
+      display: inline-block;
+      padding: 12px 32px;
+      background: white;
+      color: #4f46e5;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: transform 0.2s;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+    .status {
+      margin-top: 2rem;
+      padding: 1rem;
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+    }
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      margin: 0.5rem 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📡</div>
+    <h1>شما آفلاین هستید</h1>
+    <p>اتصال اینترنت برقرار نیست. لطفاً اتصال خود را بررسی کنید و دوباره تلاش کنید.</p>
+    <a href="/" class="btn">تلاش مجدد</a>
+    
+    <div class="status">
+      <div class="status-item">
+        <span>وضعیت اتصال:</span>
+        <span id="connection-status">بررسی...</span>
+      </div>
+      <div class="status-item">
+        <span>حالت:</span>
+        <span>آفلاین</span>
+      </div>
+      <div class="status-item">
+        <span>آخرین همگام‌سازی:</span>
+        <span id="last-sync">نامشخص</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Check connection status
+    function updateConnectionStatus() {
+      const statusElement = document.getElementById('connection-status');
+      if (navigator.onLine) {
+        statusElement.textContent = 'آنلاین';
+        statusElement.style.color = '#10b981';
+        setTimeout(() => window.location.href = '/', 2000);
+      } else {
+        statusElement.textContent = 'آفلاین';
+        statusElement.style.color = '#ef4444';
+      }
+    }
+
+    // Update last sync time
+    function updateLastSync() {
+      const lastSync = localStorage.getItem('lastSync');
+      const syncElement = document.getElementById('last-sync');
+      if (lastSync) {
+        const date = new Date(lastSync);
+        syncElement.textContent = date.toLocaleString('fa-IR');
+      }
+    }
+
+    // Listen for online/offline events
+    window.addEventListener('online', updateConnectionStatus);
+    window.addEventListener('offline', updateConnectionStatus);
+
+    // Initial check
+    updateConnectionStatus();
+    updateLastSync();
+
+    // Check every 5 seconds
+    setInterval(updateConnectionStatus, 5000);
+  </script>
+</body>
+</html>

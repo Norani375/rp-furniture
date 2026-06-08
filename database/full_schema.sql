@@ -199,6 +199,7 @@ CREATE TABLE installment_plans (
   installment_count INTEGER NOT NULL,
   start_date DATE NOT NULL DEFAULT CURRENT_DATE,
   end_date DATE,
+  due_date DATE,
   status VARCHAR(20) CHECK (status IN ('active', 'completed', 'overdue', 'cancelled')) DEFAULT 'active',
   notes TEXT,
   created_by UUID REFERENCES users(id),
