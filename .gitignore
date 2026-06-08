@@ -47,3 +47,6 @@ backups/
 # Database dumps
 *.sql.gz
 *.sql.bz2
+
+.vercel
+.env*
