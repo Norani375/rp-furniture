@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: erp-backend
+    runtime: node
+    buildCommand: npm install
+    startCommand: node server/index.js
+    plan: free
+    region: oregon
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: ADMIN_PASSWORD
+        value: 123456
+      - key: PORT
+        value: 3001
+      - key: NODE_VERSION
+        value: 20
