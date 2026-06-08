@@ -48,19 +48,63 @@ pool.query('SELECT NOW()', (err) => {
 });
 
 // ═══════════════════════════════════════════════════════
-// Helper: Run query with error handling
+// LOGGING SYSTEM
+// ═══════════════════════════════════════════════════════
+const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
+const logger = {
+  info: (msg, data) => LOG_LEVEL !== 'error' && console.log(`[INFO]  ${new Date().toISOString()} ${msg}`, data || ''),
+  warn: (msg, data) => console.warn(`[WARN]  ${new Date().toISOString()} ${msg}`, data || ''),
+  error: (msg, data) => console.error(`[ERROR] ${new Date().toISOString()} ${msg}`, data || ''),
+  debug: (msg, data) => LOG_LEVEL === 'debug' && console.log(`[DEBUG] ${new Date().toISOString()} ${msg}`, data || ''),
+};
+
+// ═══════════════════════════════════════════════════════
+// Helper: Run query with error handling + timing
 // ═══════════════════════════════════════════════════════
 async function query(text, params) {
   const client = await pool.connect();
+  const startTime = Date.now();
   try {
-    const start = Date.now();
     const res = await client.query(text, params);
-    console.log(`✓ [${Date.now() - start}ms] ${text.slice(0, 60)}...`);
+    const duration = Date.now() - startTime;
+    if (duration > 1000) {
+      logger.warn(`⚠️ SLOW QUERY (${duration}ms): ${text.slice(0, 80)}`);
+    } else {
+      logger.debug(`✓ [${duration}ms] ${text.slice(0, 80)}`);
+    }
     return res;
+  } catch (err) {
+    logger.error(`Query failed: ${err.message}`, { query: text.slice(0, 100) });
+    throw err;
   } finally {
     client.release();
   }
 }
+
+// ═══════════════════════════════════════════════════════
+// Request Logging Middleware
+// ═══════════════════════════════════════════════════════
+app.use((req, res, next) => {
+  const start = Date.now();
+  const requestId = Math.random().toString(36).slice(2, 10);
+  req.requestId = requestId;
+
+  logger.info(`→ ${req.method} ${req.path}`, { ip: req.ip, requestId });
+
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    const level = res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info';
+    logger[level](`← ${req.method} ${req.path} [${res.statusCode}] ${duration}ms`, { requestId });
+  });
+
+  next();
+});
+
+// Error handler
+app.use((err, req, res, next) => {
+  logger.error('Unhandled error', { error: err.message, stack: err.stack, path: req.path });
+  res.status(500).json({ error: 'Internal server error', requestId: req.requestId });
+});
 
 // ═══════════════════════════════════════════════════════
 // SECURITY: Auth Middleware (Role-Based Access Control)
