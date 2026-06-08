@@ -1,79 +1,14 @@
 <!doctype html>
-<html lang="fa" dir="rtl">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#4f46e5" />
-    <meta name="description" content="سیستم مدیریت منابع سازمانی با استانداردهای بین‌المللی" />
-    
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json" />
-    
-    <!-- Icons -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-72x72.png" />
-    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
-    
-    <!-- Theme Color -->
-    <meta name="msapplication-TileColor" content="#4f46e5" />
-    <meta name="msapplication-config" content="/icons/browserconfig.xml" />
-    
+    <link rel="manifest" href="/manifest.webmanifest" />
     <title>Enterprise ERP System</title>
-    
-    <style>
-      /* Initial loading styles */
-      body {
-        margin: 0;
-        font-family: 'Vazirmatn', 'Tahoma', sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      }
-      #root:empty {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 100vh;
-      }
-      #root:empty::before {
-        content: 'در حال بارگذاری...';
-        color: white;
-        font-size: 1.5rem;
-      }
-    </style>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    
-    <!-- Service Worker Registration -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
-              console.log('✓ Service Worker registered:', registration.scope);
-              
-              // Check for updates
-              registration.addEventListener('updatefound', () => {
-                const newWorker = registration.installing;
-                newWorker.addEventListener('statechange', () => {
-                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    // New version available
-                    if (confirm('نسخه جدید در دسترس است. آیا می‌خواهید به‌روزرسانی کنید؟')) {
-                      window.location.reload();
-                    }
-                  }
-                });
-              });
-            })
-            .catch(error => {
-              console.error('✗ Service Worker registration failed:', error);
-            });
-        });
-      }
-      
-      // Track last sync time
-      window.addEventListener('online', () => {
-        localStorage.setItem('lastSync', new Date().toISOString());
-      });
-    </script>
   </body>
 </html>
