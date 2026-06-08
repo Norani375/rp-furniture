@@ -49,8 +49,8 @@ const mapTransaction = (r: any): Transaction => ({
 
 export async function testConnection(): Promise<{ ok: boolean; message: string }> {
   const result = await api<{ status: string; database: string }>('/health');
-  if (result?.status === 'ok') return { ok: true, message: 'اتصال امن به Backend و Neon برقرار است' };
-  return { ok: false, message: 'Backend یا دیتابیس در دسترس نیست' };
+  if (result?.status === 'ok') return { ok: true, message: `Backend فعال است (${result.database || 'database'})` };
+  return { ok: false, message: 'Backend اجرا نیست؛ حالت محلی فعال است' };
 }
 
 export const neonInventory = {

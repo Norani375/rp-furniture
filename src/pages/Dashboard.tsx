@@ -62,12 +62,12 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-slate-900">داشبورد مدیریت یکپارچه</h2>
-          <p className="text-sm text-slate-500">خلاصه کل سیستم از Neon PostgreSQL</p>
+          <p className="text-sm text-slate-500">خلاصه کل سیستم؛ در صورت نبود Backend، داده‌ها از حالت محلی خوانده می‌شوند</p>
         </div>
         <div className="flex items-center gap-2">
           <span className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${connected ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
             <span className={`h-2 w-2 rounded-full ${connected ? 'bg-emerald-500' : 'bg-red-500'} ${loading ? 'animate-pulse' : ''}`} />
-            {connected ? 'Neon متصل' : 'آفلاین'}
+            {connected ? 'Backend متصل' : 'حالت محلی'}
           </span>
           <button onClick={loadLiveData} className="rounded-xl border border-slate-300 bg-white p-2 text-slate-600 hover:bg-slate-50" title="بروزرسانی">
             {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
@@ -104,7 +104,7 @@ export default function Dashboard() {
 
       {recentTx.length > 0 && (
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-900 mb-3">آخرین تراکنش‌ها از Neon</h3>
+          <h3 className="text-sm font-bold text-slate-900 mb-3">آخرین تراکنش‌ها</h3>
           <div className="space-y-2">
             {recentTx.map((tx) => (
               <div key={tx.id} className="flex items-center justify-between rounded-xl border border-slate-100 px-4 py-2.5">
@@ -126,7 +126,7 @@ export default function Dashboard() {
 
       {recentTx.length === 0 && !loading && (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-          <p className="text-slate-500">داده‌ای از Neon یافت نشد. ابتدا دیتابیس را راه‌اندازی کنید.</p>
+          <p className="text-slate-500">هنوز تراکنشی ثبت نشده است. سیستم در حالت محلی آماده استفاده است.</p>
         </div>
       )}
     </div>

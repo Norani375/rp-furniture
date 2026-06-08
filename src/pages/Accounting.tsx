@@ -153,7 +153,7 @@ export default function Accounting() {
         <div className="flex items-center gap-2">
           <span className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${dataSource === 'neon' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
             {dataSource === 'neon' ? <Cloud size={12} /> : <CloudOff size={12} />}
-            {dataSource === 'neon' ? 'Neon PostgreSQL' : 'محلی'}
+            {dataSource === 'neon' ? 'Backend/Neon' : 'محلی'}
           </span>
           <button onClick={loadData} className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white p-2 text-slate-600 hover:bg-slate-50" title="بارگذاری مجدد">
             {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
@@ -187,7 +187,7 @@ export default function Accounting() {
             <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="مبلغ (AFN)" className="rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none" />
           </div>
           <div className="mt-3 flex gap-2">
-            <button onClick={saveTx} className="rounded-xl bg-slate-900 px-5 py-2 text-sm font-medium text-white hover:bg-slate-800">{editingId ? 'ذخیره تغییرات' : `ثبت در ${dataSource === 'neon' ? 'Neon' : 'محلی'}`}</button>
+            <button onClick={saveTx} className="rounded-xl bg-slate-900 px-5 py-2 text-sm font-medium text-white hover:bg-slate-800">{editingId ? 'ذخیره تغییرات' : `ثبت در ${dataSource === 'neon' ? 'Backend/Neon' : 'محلی'}`}</button>
             <button onClick={() => { setShowForm(false); setEditingId(null); }} className="rounded-xl border border-slate-300 px-5 py-2 text-sm text-slate-600 hover:bg-slate-50">انصراف</button>
           </div>
         </div>

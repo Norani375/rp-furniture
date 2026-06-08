@@ -1,200 +1,151 @@
 name: ERP CI/CD Pipeline
 
 on:
-push:
-branches:
-- main
-- develop
-pull_request:
-branches:
-- main
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
 
 env:
-NODE_VERSION: '22'
+  NODE_VERSION: '20'
 
 jobs:
-quality:
-name: Code Quality
-runs-on: ubuntu-latest
+  # ═══════════════════════════════════════════════════════
+  # JOB 1: Quality Checks
+  # ═══════════════════════════════════════════════════════
+  quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-```
-steps:
-  - name: Checkout
-    uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
 
-  - name: Setup Node
-    uses: actions/setup-node@v4
-    with:
-      node-version: ${{ env.NODE_VERSION }}
-      cache: npm
+      - name: Install dependencies
+        run: npm ci
 
-  - name: Install Dependencies
-    run: npm ci
+      - name: Type check
+        run: npx tsc --noEmit
 
-  - name: Type Check
-    run: npx tsc --noEmit
+      - name: Build
+        run: npm run build
 
-  - name: Production Build
-    run: npm run build
+      - name: Check bundle size
+        run: |
+          SIZE=$(stat -f%z dist/index.html 2>/dev/null || stat -c%s dist/index.html)
+          echo "Bundle size: $SIZE bytes"
+          if [ $SIZE -gt 1500000 ]; then
+            echo "❌ Bundle too large (>1.5MB)"
+            exit 1
+          fi
+          echo "✅ Bundle size OK"
 
-  - name: Bundle Size Check
-    run: |
-      SIZE=$(stat -c%s dist/index.html)
-      echo "Bundle size: $SIZE bytes"
+  # ═══════════════════════════════════════════════════════
+  # JOB 2: Security Audit
+  # ═══════════════════════════════════════════════════════
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      if [ "$SIZE" -gt 1500000 ]; then
-        echo "Bundle exceeds 1.5MB limit"
-        exit 1
-      fi
-```
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
 
-security:
-name: Security Audit
-runs-on: ubuntu-latest
-needs: quality
+      - name: Install dependencies
+        run: npm ci
 
-```
-steps:
-  - name: Checkout
-    uses: actions/checkout@v4
+      - name: Run npm audit
+        run: npm audit --production
+        continue-on-error: true
 
-  - name: Setup Node
-    uses: actions/setup-node@v4
-    with:
-      node-version: ${{ env.NODE_VERSION }}
-      cache: npm
+      - name: Check for secrets
+        run: |
+          echo "🔍 Scanning for hardcoded credentials..."
+          if grep -r "neondb_owner\|npg_" --include="*.ts" --include="*.tsx" --include="*.js" src/ 2>/dev/null; then
+            echo "❌ CRITICAL: Found hardcoded database credentials in frontend code!"
+            echo "🛡️  Credentials must stay in backend only (server/index.js via env vars)"
+            exit 1
+          fi
+          echo "✅ No hardcoded credentials found in frontend"
 
-  - name: Install Dependencies
-    run: npm ci
+  # ═══════════════════════════════════════════════════════
+  # JOB 3: Database Tests
+  # ═══════════════════════════════════════════════════════
+  database:
+    name: Database Tests
+    runs-on: ubuntu-latest
+    needs: quality
+    if: github.event_name == 'push'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  - name: NPM Audit
-    run: npm audit --production
-    continue-on-error: true
+      - name: Test Neon connection
+        if: env.DATABASE_URL != ''
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "Testing Neon PostgreSQL connection..."
+          node -e "const { Pool } = require('pg'); const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }); pool.query('SELECT 1', (err) => { if (err) { console.error('❌ DB Error:', err.message); process.exit(1); } console.log('✅ Database connected'); pool.end(); });"
 
-  - name: Secret Scan
-    run: |
-      if grep -R "neondb_owner\|npg_" src/ \
-         --include="*.ts" \
-         --include="*.tsx" \
-         --include="*.js" \
-         --include="*.jsx"; then
-        echo "Hardcoded credentials detected"
-        exit 1
-      fi
-```
+  # ═══════════════════════════════════════════════════════
+  # JOB 4: Deploy to Vercel (production)
+  # ═══════════════════════════════════════════════════════
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [quality, security, database]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-database:
-name: Database Connectivity Test
-runs-on: ubuntu-latest
-needs: quality
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
 
-```
-if: github.event_name == 'push'
+      - name: Install dependencies
+        run: npm ci
 
-steps:
-  - name: Checkout
-    uses: actions/checkout@v4
+      - name: Build
+        run: npm run build
+        env:
+          VITE_FORCE_LOCAL: 'true'
 
-  - name: Verify Database Connection
-    env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-    run: |
-      if [ -z "$DATABASE_URL" ]; then
-        echo "DATABASE_URL not configured"
-        exit 0
-      fi
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
 
-      npm install pg
+  # ═══════════════════════════════════════════════════════
+  # JOB 5: Deploy Backend to Render
+  # ═══════════════════════════════════════════════════════
+  deploy-backend:
+    name: Deploy Backend
+    runs-on: ubuntu-latest
+    needs: [quality, security]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      node -e "
-      const { Pool } = require('pg');
-
-      const pool = new Pool({
-        connectionString: process.env.DATABASE_URL,
-        ssl: { rejectUnauthorized: false }
-      });
-
-      pool.query('SELECT NOW()')
-        .then(() => {
-          console.log('Database connection successful');
-          pool.end();
-        })
-        .catch(err => {
-          console.error(err.message);
-          process.exit(1);
-        });
-      "
-```
-
-deploy:
-name: Deploy Frontend
-runs-on: ubuntu-latest
-
-```
-needs:
-  - quality
-  - security
-  - database
-
-if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
-steps:
-  - name: Checkout
-    uses: actions/checkout@v4
-
-  - name: Setup Node
-    uses: actions/setup-node@v4
-    with:
-      node-version: ${{ env.NODE_VERSION }}
-      cache: npm
-
-  - name: Install Dependencies
-    run: npm ci
-
-  - name: Build Application
-    env:
-      VITE_FORCE_LOCAL: true
-    run: npm run build
-
-  - name: Install Latest Vercel CLI
-    run: npm install --global vercel@latest
-
-  - name: Pull Vercel Configuration
-    run: |
-      vercel pull \
-        --yes \
-        --environment=production \
-        --token=${{ secrets.VERCEL_TOKEN }}
-
-  - name: Build Vercel Project
-    run: |
-      vercel build \
-        --prod \
-        --token=${{ secrets.VERCEL_TOKEN }}
-
-  - name: Deploy To Production
-    run: |
-      vercel deploy \
-        --prebuilt \
-        --prod \
-        --token=${{ secrets.VERCEL_TOKEN }}
-```
-
-deploy-backend:
-name: Deploy Backend
-runs-on: ubuntu-latest
-
-```
-needs:
-  - quality
-  - security
-
-if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
-steps:
-  - name: Trigger Render Deployment
-    run: |
-      curl -X POST \
-        "https://api.render.com/deploy/srv-${{ secrets.RENDER_SERVICE_ID }}" \
-        -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}"
-```
+      - name: Deploy to Render
+        run: |
+          curl -X POST https://api.render.com/deploy/srv-${{ secrets.RENDER_SERVICE_ID }} \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}"
