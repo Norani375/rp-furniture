@@ -27,24 +27,31 @@ let dbConnected = false;
 
 async function initDB() {
   try {
-    const pg = await import('pg');
-    const { Pool } = pg.default || pg;
-    const connStr = process.env.DATABASE_URL || '';
+    const { Pool } = await import('pg');
+
+    const connStr = process.env.DATABASE_URL;
+
     if (!connStr) {
-      console.log('⚠️  No DATABASE_URL — running in memory mode');
+      console.log('⚠️ No DATABASE_URL — memory mode');
       return;
     }
+
     db = new Pool({
       connectionString: connStr,
-      ssl: { rejectUnauthorized: false },
-      max: 10,
+      ssl: {
+        rejectUnauthorized: false,
+      },
+      max: 3, // ✅ مهم: مناسب Vercel
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
     });
+
     await db.query('SELECT 1');
+
     dbConnected = true;
     console.log('✅ Connected to Neon PostgreSQL');
   } catch (err) {
-    console.log(`⚠️  Neon not available: ${err.message}`);
-    console.log('   Running in memory mode (data resets on restart)');
+    console.log('⚠️ DB fallback mode:', err.message);
     db = null;
     dbConnected = false;
   }
