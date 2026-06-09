@@ -354,7 +354,7 @@ app.post('/api/restore', (req, res) => {
 // Start
 // ═══════════════════════════════════════════
 initDB().then(() => {
-  app.listen(PORT, () => {
+  export default app(PORT, () => {
     console.log(`\n╔═══════════════════════════════════════════╗`);
     console.log(`║   🚀 ERP Backend port ${PORT}               ║`);
     console.log(`║   📡 http://localhost:${PORT}/api             ║`);
