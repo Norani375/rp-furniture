@@ -27,24 +27,31 @@ let dbConnected = false;
 
 async function initDB() {
   try {
-    const pg = await import('pg');
-    const { Pool } = pg.default || pg;
-    const connStr = process.env.DATABASE_URL || '';
+    const { Pool } = await import('pg');
+
+    const connStr = process.env.DATABASE_URL;
+
     if (!connStr) {
-      console.log('⚠️  No DATABASE_URL — running in memory mode');
+      console.log('⚠️ No DATABASE_URL — memory mode');
       return;
     }
+
     db = new Pool({
       connectionString: connStr,
-      ssl: { rejectUnauthorized: false },
-      max: 10,
+      ssl: {
+        rejectUnauthorized: false,
+      },
+      max: 3, // ✅ مهم: مناسب Vercel
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
     });
+
     await db.query('SELECT 1');
+
     dbConnected = true;
     console.log('✅ Connected to Neon PostgreSQL');
   } catch (err) {
-    console.log(`⚠️  Neon not available: ${err.message}`);
-    console.log('   Running in memory mode (data resets on restart)');
+    console.log('⚠️ DB fallback mode:', err.message);
     db = null;
     dbConnected = false;
   }
@@ -146,11 +153,17 @@ function generateId(prefix) { return `${prefix}-${Date.now().toString().slice(-6
 
 async function dbQuery(text, params) {
   if (!dbConnected || !db) return null;
+
   const client = await db.connect();
+
   try {
-    const res = await client.query(text, params);
-    return res;
-  } finally { client.release(); }
+    return await client.query(text, params);
+  } catch (err) {
+    console.error('DB Query Error:', err.message);
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -341,7 +354,7 @@ app.post('/api/restore', (req, res) => {
 // Start
 // ═══════════════════════════════════════════
 initDB().then(() => {
-  app.listen(PORT, () => {
+  export default app(PORT, () => {
     console.log(`\n╔═══════════════════════════════════════════╗`);
     console.log(`║   🚀 ERP Backend port ${PORT}               ║`);
     console.log(`║   📡 http://localhost:${PORT}/api             ║`);
