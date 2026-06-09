@@ -153,11 +153,17 @@ function generateId(prefix) { return `${prefix}-${Date.now().toString().slice(-6
 
 async function dbQuery(text, params) {
   if (!dbConnected || !db) return null;
+
   const client = await db.connect();
+
   try {
-    const res = await client.query(text, params);
-    return res;
-  } finally { client.release(); }
+    return await client.query(text, params);
+  } catch (err) {
+    console.error('DB Query Error:', err.message);
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 // ═══════════════════════════════════════════
